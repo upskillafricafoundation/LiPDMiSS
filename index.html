@@ -347,6 +347,16 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
   .hero h2 { font-size: clamp(15px, 4.5vw, 18px); }
   .gwFormPanel { padding: 24px 18px; }
 }
+   /* ADMIN STUDENT TABLE + PAGINATION + GRADE EXPAND ROW */
+.studentTable td { vertical-align: middle; }
+.studentTableName { display: flex; align-items: center; gap: 10px; text-align: left; }
+.thumb.small { width: 40px; height: 48px; font-size: 16px; }
+.expandBtn { width: 30px; height: 30px; padding: 0; font-size: 16px; line-height: 1; border-radius: 6px; }
+.gradeExpandRow td { background: #f8fafc; padding: 10px 12px; }
+.gradeMiniTable { min-width: 700px; font-size: 12px; }
+.gradeMiniTable th { background: #103db8; }
+.paginationBar { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 14px 0; }
+.financeRoleNotice { background: #fff7ed; border: 1px dashed #f59e0b; color: #92400e; padding: 12px 16px; border-radius: 10px; font-weight: bold; margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -662,7 +672,8 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
           <input id="studentSearch" type="search" placeholder="Search by name, ID, or class..." oninput="searchStudents(this.value)">
         </label>
       </div>
-      <div id="studentList"></div>
+        <div id="studentList"></div>
+      <div id="studentPaginationBar" class="paginationBar"></div>
     </div>
 
     <!-- TEACHER MANAGEMENT & PERMISSIONS TAB -->
@@ -798,12 +809,14 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         <label>3rd Installment<input id="inst3" type="number" min="0" step="0.01" placeholder="0.00"></label>
         <label>4th Installment<input id="inst4" type="number" min="0" step="0.01" placeholder="0.00"></label>
       </div>
+      <label>Other Payments (misc. fees, materials, etc.)<input id="otherPayments" type="number" min="0" step="0.01" placeholder="0.00"></label>
       <div id="financeCalc" class="financeCalc"></div>
+      <p id="financeRoleNotice" class="financeRoleNotice hidden">🔒 View-only: Admin accounts cannot edit financial records. Contact the Registrar to record a transaction.</p>
       <div class="financeActions">
         <label class="check"><input id="registrationPaid" type="checkbox"> Registration paid (one-time)</label>
         <div>
-          <button onclick="saveFinance()">Save Payment Records</button>
-          <button class="light" onclick="clearFinance()">Clear Payment Records</button>
+          <button id="financeSaveBtn" onclick="saveFinance()">Save Payment Records</button>
+          <button id="financeClearBtn" class="light" onclick="clearFinance()">Clear Payment Records</button>
         </div>
       </div>
     </div>
@@ -1475,33 +1488,134 @@ async function loadPermissions() {
 // ADMIN — STUDENT MANAGEMENT
 // =============================================================================
 
-function renderStudentList(filterText) {
+const STUDENTS_PAGE_SIZE = 5;
+
+function getFilteredSortedStudents(filterText) {
   const filtered = STATE.students.filter(s => {
     if (String(s.academicYear) !== String(STATE.activeYear)) return false;
     if (!filterText) return true;
     const q = filterText.toLowerCase();
     return s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || s.className.toLowerCase().includes(q);
   });
-
-  $('studentCount').textContent = filtered.length;
-  $('studentList').innerHTML = filtered.map(s => `
-    <div class="item studentCard">
-      <div class="thumb">${photoTag(s.photo, '')}</div>
-      <div style="flex:1;min-width:200px;">
-        <b>${esc(s.name)}</b> <span class="lockBadge ${s.gradeLocked ? 'locked' : 'unlocked'}">${s.gradeLocked ? 'GRADE LOCKED' : 'UNLOCKED'}</span><br>
-        <span class="muted">${esc(s.id)} • ${esc(s.className)} • AY ${esc(s.academicYear)}</span>
-      </div>
-      <div class="studentCardActions">
-        <button class="light" data-action="manageScores" data-id="${esc(s.id)}">📊 Scores</button>
-        <button class="light" data-action="manageFinance" data-id="${esc(s.id)}">💳 Finance</button>
-        <button class="light" data-action="editStudent" data-id="${esc(s.id)}">✏️ Edit</button>
-        <button class="light" data-action="toggleLock" data-id="${esc(s.id)}" data-locked="${s.gradeLocked}">${s.gradeLocked ? '🔓 Unlock' : '🔒 Lock'}</button>
-        <button class="danger" data-action="deleteStudent" data-id="${esc(s.id)}">🗑 Delete</button>
-      </div>
-    </div>`).join('') || '<p class="muted">No students found for this academic year.</p>';
+  filtered.sort((a, b) => {
+    const ta = new Date(a.updatedAt || 0).getTime();
+    const tb = new Date(b.updatedAt || 0).getTime();
+    return tb - ta; // most recently updated first
+  });
+  return filtered;
 }
 
-function searchStudents(val) { renderStudentList(val); }
+function renderStudentList(filterText) {
+  STATE.studentSearchText = filterText || '';
+  const filtered = getFilteredSortedStudents(STATE.studentSearchText);
+  $('studentCount').textContent = filtered.length;
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / STUDENTS_PAGE_SIZE));
+  if (STATE.studentPage === undefined) STATE.studentPage = 0;
+  if (STATE.studentPage >= totalPages) STATE.studentPage = totalPages - 1;
+  if (STATE.studentPage < 0) STATE.studentPage = 0;
+
+  const start = STATE.studentPage * STUDENTS_PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + STUDENTS_PAGE_SIZE);
+
+  $('studentList').innerHTML = buildStudentTableHtml(pageItems);
+  renderStudentPaginationBar(filtered.length, totalPages);
+}
+
+function buildStudentTableHtml(items) {
+  if (!items.length) return '<p class="muted">No students found for this academic year.</p>';
+
+  const rows = items.map(s => {
+    const f = s.finance || {};
+    const installments = f.installments || [0, 0, 0, 0];
+    const paidSum = installments.reduce((a, b) => a + toNum(b), 0);
+    const balance = Math.max(0, toNum(f.tuitionTotal) - paidSum);
+    const rowId = 'grow_' + s.id.replace(/[^a-zA-Z0-9]/g, '_');
+
+    return `
+      <tr class="studentTableRow">
+        <td><button class="light expandBtn" data-action="toggleGradeExpand" data-row="${rowId}">+</button></td>
+        <td class="studentTableName">
+          <div class="thumb small">${photoTag(s.photo, '')}</div>
+          <div><b>${esc(s.name)}</b><br><span class="muted">${esc(s.id)}</span> <span class="lockBadge ${s.gradeLocked ? 'locked' : 'unlocked'}">${s.gradeLocked ? 'LOCKED' : 'OPEN'}</span></div>
+        </td>
+        <td>${esc(s.className)}</td>
+        <td>${formatMoney(f.tuitionTotal, f.currency)}</td>
+        <td>${f.registrationPaid ? formatMoney(f.registrationFee, f.currency) : '<span class="fail">Unpaid</span>'}</td>
+        <td>${formatMoney(paidSum, f.currency)}</td>
+        <td class="${balance > 0 ? 'fail' : 'pass'}">${formatMoney(balance, f.currency)}</td>
+        <td>${toNum(f.otherPayments) > 0 ? formatMoney(f.otherPayments, f.currency) : '—'}</td>
+        <td class="studentCardActions">
+          <button class="light" data-action="editStudent" data-id="${esc(s.id)}">✏️</button>
+          <button class="light" data-action="manageFinance" data-id="${esc(s.id)}">💳</button>
+          <button class="light" data-action="toggleLock" data-id="${esc(s.id)}" data-locked="${s.gradeLocked}">${s.gradeLocked ? '🔓' : '🔒'}</button>
+          <button class="danger" data-action="deleteStudent" data-id="${esc(s.id)}">🗑</button>
+        </td>
+      </tr>
+      <tr id="${rowId}" class="gradeExpandRow hidden">
+        <td colspan="9">${buildStudentGradeMiniTable(s)}</td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <div class="tableWrap">
+      <table class="scoreTable studentTable">
+        <thead><tr>
+          <th></th><th>STUDENT</th><th>CLASS</th><th>TUITION TOTAL</th><th>REG. FEE</th><th>AMOUNT PAID</th><th>BALANCE</th><th>OTHER PAYMENT</th><th>ACTIONS</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function buildStudentGradeMiniTable(s) {
+  const subs = studentSubjectsForYear(s, s.academicYear);
+  if (s.gradeLocked) return '<p class="muted" style="padding:10px;">🔒 Grade sheet locked for this student.</p>';
+  if (!subs.length) return '<p class="muted" style="padding:10px;">No grade records yet.</p>';
+
+  const rows = subs.map(sub => {
+    const sem1 = avgOf([sub.p1, sub.p2, sub.p3, sub.exam1]);
+    const sem2 = avgOf([sub.p4, sub.p5, sub.p6, sub.exam2]);
+    const yr = (sem1 + sem2) / 2;
+    const g = gradeFor(yr);
+    return `<tr>
+      <td class="subject">${esc(sub.subject)}</td>
+      <td>${sub.p1 ?? '-'}</td><td>${sub.p2 ?? '-'}</td><td>${sub.p3 ?? '-'}</td><td>${sub.exam1 ?? '-'}</td>
+      <td>${sub.p4 ?? '-'}</td><td>${sub.p5 ?? '-'}</td><td>${sub.p6 ?? '-'}</td><td>${sub.exam2 ?? '-'}</td>
+      <td><b>${yr.toFixed(1)}</b></td><td>${g.grade}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="tableWrap">
+      <table class="scoreTable gradeMiniTable">
+        <thead><tr><th>SUBJECT</th><th>1PD</th><th>2PD</th><th>3PD</th><th>1EX</th><th>4PD</th><th>5PD</th><th>6PD</th><th>2EX</th><th>YR AVG</th><th>GRADE</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function toggleGradeExpand(rowId, btn) {
+  const row = $(rowId);
+  if (!row) return;
+  row.classList.toggle('hidden');
+  if (btn) btn.textContent = row.classList.contains('hidden') ? '+' : '−';
+}
+
+function renderStudentPaginationBar(totalCount, totalPages) {
+  const bar = $('studentPaginationBar');
+  if (!bar) return;
+  const page = STATE.studentPage + 1;
+  bar.innerHTML = `
+    <button class="light" data-action="studentPrevPage" ${STATE.studentPage <= 0 ? 'disabled' : ''}>← Previous</button>
+    <span class="muted">Page ${page} of ${totalPages} (${totalCount} students, most recently updated first)</span>
+    <button class="light" data-action="studentNextPage" ${page >= totalPages ? 'disabled' : ''}>Next →</button>`;
+}
+
+function searchStudents(val) {
+  STATE.studentPage = 0;
+  renderStudentList(val);
+}
 
 function clearStudentForm() {
   ['newId', 'newName', 'newPass', 'newDob', 'newRole', 'newBehaviour', 'newGuardian', 'newPhone'].forEach(id => $(id).value = '');
@@ -1681,6 +1795,11 @@ async function deleteRecord(subject) {
 // ADMIN — FINANCE MANAGEMENT
 // =============================================================================
 
+function isRegistrarUser() {
+  return STATE.currentUser && STATE.currentUser.userType === 'admin' &&
+    String((STATE.currentUser.data || {}).role || '').trim().toLowerCase() === 'registrar';
+}
+
 function manageFinance(id) {
   STATE.financeStudentId = id;
   const s = STATE.students.find(x => x.id === id);
@@ -1701,7 +1820,14 @@ function manageFinance(id) {
   $('inst2').value = inst[1] || 0;
   $('inst3').value = inst[2] || 0;
   $('inst4').value = inst[3] || 0;
+  $('otherPayments').value = f.otherPayments || 0;
   $('registrationPaid').checked = !!f.registrationPaid;
+
+  const editable = isRegistrarUser();
+  document.querySelectorAll('#financePage input').forEach(el => el.disabled = !editable);
+  $('financeSaveBtn').classList.toggle('hidden', !editable);
+  $('financeClearBtn').classList.toggle('hidden', !editable);
+  $('financeRoleNotice').classList.toggle('hidden', editable);
 
   renderFinanceCalc();
   show('financePage');
@@ -1712,9 +1838,11 @@ function renderFinanceCalc() {
   const paid = toNum($('inst1').value) + toNum($('inst2').value) + toNum($('inst3').value) + toNum($('inst4').value);
   const balance = Math.max(0, tuitionTotal - paid);
   const currency = $('currency').value || 'USD';
+  const otherPayments = toNum($('otherPayments').value);
   $('financeCalc').innerHTML = `
-    <div><span class="muted">Total Paid:</span> <b>${formatMoney(paid, currency)}</b></div>
-    <div><span class="muted">Balance Remaining:</span> <b class="${balance > 0 ? 'fail' : 'pass'}">${formatMoney(balance, currency)}</b></div>`;
+    <div><span class="muted">Total Paid (Tuition):</span> <b>${formatMoney(paid, currency)}</b></div>
+    <div><span class="muted">Balance Remaining:</span> <b class="${balance > 0 ? 'fail' : 'pass'}">${formatMoney(balance, currency)}</b></div>
+    <div><span class="muted">Other Payments Recorded:</span> <b>${formatMoney(otherPayments, currency)}</b></div>`;
 }
 
 async function saveFinance() {
@@ -1724,12 +1852,26 @@ async function saveFinance() {
     registrationDate: $('registrationDate').value,
     tuitionTotal: toNum($('tuitionTotal').value),
     currency: $('currency').value.trim() || 'USD',
-    installments: [toNum($('inst1').value), toNum($('inst2').value), toNum($('inst3').value), toNum($('inst4').value)]
+    installments: [toNum($('inst1').value), toNum($('inst2').value), toNum($('inst3').value), toNum($('inst4').value)],
+    otherPayments: toNum($('otherPayments').value)
   };
-  const result = await apiCall('saveFinance', { id: STATE.financeStudentId, finance: finance });
+  const actorRole = (STATE.currentUser && STATE.currentUser.data && STATE.currentUser.data.role) || '';
+  const result = await apiCall('saveFinance', { id: STATE.financeStudentId, finance: finance, actorRole: actorRole });
   if (result.success) {
     alert(result.message);
     await loadStudents();
+    renderStudentList(STATE.studentSearchText);
+  }
+}
+
+async function clearFinance() {
+  if (!confirm('Clear all payment records for this student?')) return;
+  const actorRole = (STATE.currentUser && STATE.currentUser.data && STATE.currentUser.data.role) || '';
+  const result = await apiCall('clearFinance', { id: STATE.financeStudentId, actorRole: actorRole });
+  if (result.success) {
+    manageFinance(STATE.financeStudentId);
+    await loadStudents();
+    renderStudentList(STATE.studentSearchText);
   }
 }
 
@@ -1941,7 +2083,16 @@ function handleDelegatedClick(e) {
     case 'removeSubject': removeSubject(id); break;
     case 'editRecord': editRecord(btn.dataset.subject); break;
     case 'deleteRecord': deleteRecord(btn.dataset.subject); break;
-    case 'removeAssignmentRow': removeAssignmentRow(btn.dataset.row); break;
+      case 'removeAssignmentRow': removeAssignmentRow(btn.dataset.row); break;
+    case 'toggleGradeExpand': toggleGradeExpand(btn.dataset.row, btn); break;
+    case 'studentPrevPage':
+      STATE.studentPage = Math.max(0, (STATE.studentPage || 0) - 1);
+      renderStudentList(STATE.studentSearchText);
+      break;
+    case 'studentNextPage':
+      STATE.studentPage = (STATE.studentPage || 0) + 1;
+      renderStudentList(STATE.studentSearchText);
+      break;
   }
 }
 
@@ -1951,8 +2102,7 @@ function handleDelegatedClick(e) {
 
 document.addEventListener('DOMContentLoaded', () => {
   document.body.addEventListener('click', handleDelegatedClick);
-  ['registrationFee', 'tuitionTotal', 'inst1', 'inst2', 'inst3', 'inst4', 'currency'].forEach(id => {
-    $(id).addEventListener('input', renderFinanceCalc);
+  ['registrationFee', 'tuitionTotal', 'inst1', 'inst2', 'inst3', 'inst4', 'currency', 'otherPayments'].forEach(id => {    $(id).addEventListener('input', renderFinanceCalc);
   });
   onGatewayUserTypeChange();
   show('gateway');
