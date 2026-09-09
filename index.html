@@ -1866,17 +1866,6 @@ async function saveFinance() {
 
 async function clearFinance() {
   if (!confirm('Clear all payment records for this student?')) return;
-  const actorRole = (STATE.currentUser && STATE.currentUser.data && STATE.currentUser.data.role) || '';
-  const result = await apiCall('clearFinance', { id: STATE.financeStudentId, actorRole: actorRole });
-  if (result.success) {
-    manageFinance(STATE.financeStudentId);
-    await loadStudents();
-    renderStudentList(STATE.studentSearchText);
-  }
-}
-
-async function clearFinance() {
-  if (!confirm('Clear all payment records for this student?')) return;
   const result = await apiCall('clearFinance', { id: STATE.financeStudentId });
   if (result.success) {
     manageFinance(STATE.financeStudentId);
