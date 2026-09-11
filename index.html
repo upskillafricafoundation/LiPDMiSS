@@ -839,8 +839,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       <button onclick="logout()">⌂ Home / Logout</button>
       <div class="dashActions" id="studentGreetingBox"></div>
     </div>
-    <div class="statCardsRow" id="studentStatCards"></div>
-    <div class="sheet">
+        <div class="sheet">
      <div class="pdfActions">
   <button class="light" onclick="printSheet('personalPrintable')">🖨️ Print</button>
   <button class="light" onclick="downloadSheetPdf('personalPrintable','Personal-Details')">⬇ Download</button>
@@ -1527,7 +1526,6 @@ async function enterStudentPortal() {
   renderGradeSheet(s);
   renderPaymentSheet(s);
   renderSidebar();
-  renderStudentStatCards();
   show('student');
 }
 
@@ -1556,6 +1554,9 @@ function renderPersonalSheet(s) {
   const avg = studentYearlyAverage(s, s.academicYear);
   const best = studentBestSubject(s, s.academicYear);
   const teacherCount = classTeacherCount(s.className);
+  const f = s.finance || {};
+  const paidSum = (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
+  const balanceDue = Math.max(0, toNum(f.tuitionTotal) - paidSum);
 
   $('personalPrintable').innerHTML = `
     <div class="sheet" style="margin:0;">
@@ -1596,6 +1597,8 @@ function renderPersonalSheet(s) {
         <tr><td>Guardian / Parent Name</td><td id="pslGuardianRow">${esc(s.guardian) || '—'}</td></tr>
         <tr><td>Guardian Phone</td><td>${esc(s.phone) || '—'}</td></tr>
         <tr><td>Grade Sheet Status</td><td>${s.gradeLocked ? '🔒 Locked' : '✅ Open'}</td></tr>
+        <tr><td>Year Average</td><td>${avg ? avg.toFixed(1) : '—'}</td></tr>
+        <tr><td>Balance Due</td><td class="${balanceDue > 0 ? 'fail' : 'pass'}">${formatMoney(balanceDue, f.currency)}</td></tr>
       </table>
     </div>`;
 }
@@ -2511,20 +2514,21 @@ function renderTeacherStatCards() {
     <div class="statCard"><div class="statCardTop"><div class="statCardIcon">🔓</div><div><div class="statCardNum">${openPeriods}</div><div class="statCardLabel">Open Grading Periods</div></div></div></div>`;
 }
 
-function renderStudentStatCards() {
-  const box = $('studentStatCards');
-  if (!box) return;
-  const s = STATE.currentUser.data;
-  const subs = studentSubjectsForYear(s, s.academicYear);
-  const avg = studentYearlyAverage(s, s.academicYear);
-  const f = s.finance || {};
-  const paid = (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
-  const balance = Math.max(0, toNum(f.tuitionTotal) - paid);
-  box.innerHTML = `
-    <div class="statCard"><div class="statCardTop"><div class="statCardIcon">📚</div><div><div class="statCardNum">${subs.length}</div><div class="statCardLabel">Subjects</div></div></div></div>
-    <div class="statCard"><div class="statCardTop"><div class="statCardIcon">📈</div><div><div class="statCardNum">${avg.toFixed(1)}</div><div class="statCardLabel">Year Average</div></div></div></div>
-    <div class="statCard"><div class="statCardTop"><div class="statCardIcon">💳</div><div><div class="statCardNum">${formatMoney(balance, f.currency)}</div><div class="statCardLabel">Balance Due</div></div></div></div>`;
-}
+// function renderStudentStatCards() {
+//   const box = $('studentStatCards');
+//   if (!box) return;
+//   const s = STATE.currentUser.data;
+//   const subs = studentSubjectsForYear(s, s.academicYear);
+//   const avg = studentYearlyAverage(s, s.academicYear);
+//   const f = s.finance || {};
+//   const paid = (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
+//   const balance = Math.max(0, toNum(f.tuitionTotal) - paid);
+//   box.innerHTML = `
+//     <div class="statCard"><div class="statCardTop"><div class="statCardIcon">📚</div><div><div class="statCardNum">${subs.length}</div><div class="statCardLabel">Subjects</div></div></div></div>
+//     <div class="statCard"><div class="statCardTop"><div class="statCardIcon">📈</div><div><div class="statCardNum">${avg.toFixed(1)}</div><div class="statCardLabel">Year Average</div></div></div></div>
+//     <div class="statCard"><div class="statCardTop"><div class="statCardIcon">💳</div><div><div class="statCardNum">${formatMoney(balance, f.currency)}</div><div class="statCardLabel">Balance Due</div></div></div></div>`;
+// }
+   
 function currentActorRole() {
   return STATE.currentUser && STATE.currentUser.userType === 'admin'
     ? String((STATE.currentUser.data || {}).role || '').trim().toLowerCase()
