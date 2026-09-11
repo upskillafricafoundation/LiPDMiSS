@@ -1858,7 +1858,6 @@ async function loadMyLessonPlans() {
 }
 
 function renderTeacherPermissionBadges() {
-function renderTeacherPermissionBadges() {
   const box = $('teacherPermissionsStatus');
   box.innerHTML = PERIOD_KEYS.map(k => {
     const open = !!STATE.permissions[k];
@@ -2007,7 +2006,6 @@ function changeSchoolYear(year) {
   }
 }
 
-function adminTab(tab) {
  function adminTab(tab) {
   STATE.adminTab = tab;
   ['overview', 'students', 'teachers', 'permissions', 'subjects'].forEach(t => {
