@@ -1006,7 +1006,30 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       </div>
     </div>
     </section>
-
+<section id="messagesPage" class="page">
+  <div class="toolbar"><h2>✉️ Messages</h2></div>
+  <div id="composeBox" class="box hidden">
+    <h3>New Message</h3>
+    <div class="grid">
+      <label>To
+        <select id="msgRecipientType">
+          <option value="principal">Principal</option>
+          <option value="registrar">Registrar</option>
+          <option value="teacher">Teacher</option>
+          <option value="student">Student</option>
+        </select>
+      </label>
+      <label>Recipient ID (leave blank to broadcast to all in that role)
+        <input id="msgRecipientId" placeholder="e.g. STU-1001 or TCH-101">
+      </label>
+      <label class="fullSpan">Subject<input id="msgSubject" placeholder="Subject"></label>
+      <label class="fullSpan">Message<input id="msgBody" placeholder="Type your message..."></label>
+      <label class="fullSpan">Attach File (optional)<input id="msgAttachment" type="file"></label>
+    </div>
+    <button onclick="sendMessage()">Send Message</button>
+  </div>
+  <div class="box"><h3>Inbox</h3><div id="inboxList"></div></div>
+</section>
       </div>
     </div>
   </div>
@@ -2040,13 +2063,16 @@ function isRegistrarUser() {
     { icon:'👨‍🎓', label:'Students', action:() => { show('admin'); adminTab('students'); } },
     { icon:'👨‍🏫', label:'Teachers', action:() => { show('admin'); adminTab('teachers'); } },
     { icon:'📚', label:'Subjects', action:() => { show('admin'); adminTab('subjects'); } }
+    { icon:'✉️', label:'Messages', action:() => renderMessagesPage() },
   ],
   registrar: [
     { icon:'📊', label:'Dashboard', action:() => renderAdminOverview() },
     { icon:'👨‍🎓', label:'Students', action:() => { show('admin'); adminTab('students'); } }
+   { icon:'✉️', label:'Messages', action:() => renderMessagesPage() },
   ],
   teacher: [
     { icon:'📊', label:'Dashboard', action:() => show('teacher') }
+   { icon:'✉️', label:'Messages', action:() => renderMessagesPage() },
   ],
   student: [
     { icon:'📊', label:'Dashboard', action:() => { show('student'); } },
@@ -2362,6 +2388,64 @@ async function saveFinance() {
   }
 }
 
+   function renderMessagesPage() {
+  const canSend = isPrincipalUser() || isRegistrarUser();
+  $('composeBox').classList.toggle('hidden', !canSend);
+  loadInbox();
+  show('messagesPage');
+}
+
+function currentInboxIdentity() {
+  const key = currentPortalRoleKey(); // 'principal'|'registrar'|'teacher'|'student'
+  const d = STATE.currentUser.data || {};
+  return { type: key, id: d.id || d.username || '' };
+}
+
+async function loadInbox() {
+  const who = currentInboxIdentity();
+  const res = await apiCall('getMessages', { recipientType: who.type, recipientId: who.id }, { silent: true });
+  const msgs = (res.success && res.messages) || [];
+  $('inboxList').innerHTML = msgs.map(m => `
+    <div class="item">
+      <div>
+        <b>${esc(m.subject)}</b> <span class="muted">from ${esc(m.senderName)} (${esc(m.senderRole)})</span><br>
+        <span>${esc(m.body)}</span><br>
+        ${m.attachmentUrl ? `<a href="${esc(m.attachmentUrl)}" target="_blank">📎 ${esc(m.attachmentName)}</a><br>` : ''}
+        <small class="muted">${esc(m.sentAt)}</small>
+      </div>
+    </div>`).join('') || '<p class="muted">No messages yet.</p>';
+}
+
+async function sendMessage() {
+  const senderData = STATE.currentUser.data || {};
+  const senderName = senderData.name || senderData.username;
+  const file = $('msgAttachment').files[0];
+  let attachment = null;
+  if (file) {
+    attachment = await new Promise(res => {
+      const r = new FileReader();
+      r.onload = () => res({ name: file.name, data: r.result });
+      r.readAsDataURL(file);
+    });
+  }
+  const message = {
+    senderName: senderName,
+    senderId: senderData.id || senderData.username,
+    recipientType: $('msgRecipientType').value,
+    recipientId: $('msgRecipientId').value.trim(),
+    subject: $('msgSubject').value.trim(),
+    body: $('msgBody').value.trim(),
+    attachment: attachment
+  };
+  const result = await apiCall('sendMessage', { message: message, actorRole: currentActorRole() });
+  if (result.success) {
+    alert('Message sent.');
+    ['msgRecipientId','msgSubject','msgBody'].forEach(id => $(id).value = '');
+    $('msgAttachment').value = '';
+    loadInbox();
+  }
+}
+   
 async function clearFinance() {
   if (!confirm('Clear all payment records for this student?')) return;
   const result = await apiCall('clearFinance', { id: STATE.financeStudentId });
