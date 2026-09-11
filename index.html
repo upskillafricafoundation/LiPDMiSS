@@ -431,6 +431,50 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 #topHeader.hidden { display: none !important; }
 .tabs { display: none; } /* sidebar now handles this navigation */
 
+/* ===================== SYSTEM MANAGEMENT DASHBOARD (overview) ===================== */
+.ovHeader { margin-bottom: 18px; }
+.ovTitle { margin: 0 0 4px; color: #082f50; font-size: 20px; }
+
+.ovCardsRow { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; margin-bottom: 26px; }
+.ovCard {
+  background: #fff; border-radius: 16px; padding: 20px 22px; display: flex; align-items: center; gap: 16px;
+  box-shadow: 0 8px 24px rgba(8, 47, 80, 0.07); border: 1px solid #eef2f6;
+}
+.ovCardIcon { width: 58px; height: 58px; flex: 0 0 58px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; }
+.ovIconBlue { background: #e5edff; }
+.ovIconTeal { background: #d9f7ef; }
+.ovIconGold { background: #fdf2d8; }
+.ovCardBody { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.ovCardNum { font-size: 28px; font-weight: 900; color: #082f50; line-height: 1.1; }
+.ovCardLabel { font-size: 12.5px; color: #64748b; font-weight: 700; }
+.ovCardBtn {
+  align-self: flex-start; margin: 8px 0 0; padding: 7px 16px; border-radius: 20px; font-size: 12px;
+  background: #082f50; color: #fff; border: 1px solid #082f50;
+}
+.ovCardBtn.light { background: #fff; color: #082f50; }
+.ovCardBtn:hover { background: #0d47a1; border-color: #0d47a1; }
+
+.ovTableCard { background: #fff; border-radius: 16px; padding: 22px 24px; box-shadow: 0 8px 24px rgba(8, 47, 80, 0.06); border: 1px solid #eef2f6; }
+.ovTableHeader { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.ovTableHeader h4 { margin: 0; color: #082f50; font-size: 15px; }
+
+.ovTable { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.ovTable th { text-align: left; padding: 10px 12px; color: #64748b; font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 2px solid #eef2f6; }
+.ovTable td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.ovTable tr:hover td { background: #f8fafc; }
+.ovNameCell { display: flex; align-items: center; gap: 10px; }
+.ovActionsCell { white-space: nowrap; }
+.ovLink { color: #0d47a1; font-weight: 700; font-size: 12.5px; text-decoration: none; cursor: pointer; margin-right: 14px; }
+.ovLink:hover { text-decoration: underline; }
+.ovLinkBadge { background: #eff6ff; padding: 5px 12px; border-radius: 20px; margin-right: 0; }
+.ovLinkBadge:hover { background: #dbeafe; text-decoration: none; }
+
+.ovFooterBar { text-align: center; color: #94a3b8; font-size: 12px; font-weight: 600; margin-top: 18px; padding-top: 14px; border-top: 1px solid #eef2f6; }
+
+@media (max-width: 560px) {
+  .ovCard { flex-direction: column; align-items: flex-start; text-align: left; }
+}
+
 @media (max-width: 900px) {
   .appShell.show { flex-direction: column; }
   .sidebar { width:100%; flex:none; height:auto; position:relative; flex-direction:row; overflow-x:auto; padding: 12px; }
@@ -596,9 +640,6 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 
   <!-- =========================================================================
        TEACHER DASHBOARD — a teacher may be assigned to multiple classes, each
-
-  <!-- =========================================================================
-       TEACHER DASHBOARD — a teacher may be assigned to multiple classes, each
        with its own subject list. Pick a class, then a subject taught in
        that class, to load the grading roster.
        ========================================================================= -->
@@ -727,7 +768,30 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         <button class="light" onclick="logout()">Logout</button>
       </div>
    </div>
-     <div class="statCardsRow" id="adminStatCards"></div>
+
+    <!-- =========================================================================
+         SYSTEM MANAGEMENT DASHBOARD — overview landing tab. Icon stat cards
+         paired with direct action buttons, plus a "recently updated" table
+         with inline Edit / View links, built entirely from the same student,
+         teacher, finance and grading data used everywhere else in the app.
+         ========================================================================= -->
+    <div id="overviewTab">
+      <div class="ovHeader">
+        <div>
+          <h3 class="ovTitle">System Management Dashboard</h3>
+          <p class="muted">A live overview of students, teachers, and records across LiPDMiSS.</p>
+        </div>
+      </div>
+      <div class="ovCardsRow" id="overviewStatCards"></div>
+      <div class="ovTableCard">
+        <div class="ovTableHeader">
+          <h4>Recently Updated Student Records</h4>
+          <button class="light" onclick="adminTab('students')">View All Students</button>
+        </div>
+        <div id="overviewTableWrap"></div>
+      </div>
+      <div class="ovFooterBar">LiPDMiSS System Management • <span id="ovFooterYear"></span> academic year</div>
+    </div>
 
     <div class="tabs">
       <button id="tabBtnStudents" class="activeTab" onclick="adminTab('students')">👨‍🎓 Student Management</button>
@@ -736,7 +800,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
     </div>
 
     <!-- STUDENTS TAB -->
-    <div id="studentsTab">
+    <div id="studentsTab" class="hidden">
       <div class="box addStudentBox">
         <h3>➕ Add New Student Record</h3>
         <div class="grid">
@@ -954,22 +1018,9 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 /**
  * LiPDMiSS Frontend Application Script
  * Liberty Prayer Deliverance Ministries School System
- *
- * Contains: API layer (calls to the Google Apps Script backend), app state,
- * navigation, and all UI logic for the Gateway, Student, Teacher, and Admin
- * portals. This file is embedded directly in index.html.
- * -----------------------------------------------------------------------------
- * SETUP: paste your deployed Apps Script Web App URL into APP_CONFIG.API_URL
- * below (Deploy > New deployment > Web app > copy the /exec URL).
- * -----------------------------------------------------------------------------
  */
 
-// =============================================================================
-// CONFIG & CONSTANTS
-// =============================================================================
-
 const APP_CONFIG = {
-  // Paste the deployed Apps Script Web App "/exec" URL here.
   API_URL: 'https://script.google.com/macros/s/AKfycbzI287cLf12O9LZ8UHPaDMgMsL5U36edSd8B96TySG2_L3GC7lQSwAN76G9Ly40Ud30/exec',
   DEFAULT_ACADEMIC_YEAR: '2026-2027',
   SCHOOL_NAME: 'Liberty Prayer Deliverance Ministries School System',
@@ -999,12 +1050,8 @@ function generateAcademicYears() {
 }
 const ACADEMIC_YEARS = generateAcademicYears();
 
-// =============================================================================
-// APPLICATION STATE
-// =============================================================================
-
 const STATE = {
-  currentUser: null,        // { userType: 'admin'|'teacher'|'student', data: {...} }
+  currentUser: null,
   students: [],
   teachers: [],
   subjects: [],
@@ -1019,19 +1066,10 @@ const STATE = {
   assignmentRowCount: 0
 };
 
-// =============================================================================
-// API LAYER
-// =============================================================================
-
 function apiConfigured() {
   return APP_CONFIG.API_URL && APP_CONFIG.API_URL.indexOf('https://') === 0;
 }
 
-/**
- * Calls the Apps Script backend. Uses POST with a text/plain content-type
- * (avoids CORS preflight, which Apps Script Web Apps do not support) and a
- * JSON-encoded body that doPost() parses via JSON.parse(e.postData.contents).
- */
 async function api(action, data) {
   if (!apiConfigured()) {
     throw new Error('Backend not configured yet. Paste your Apps Script Web App URL into APP_CONFIG.API_URL in the script.');
@@ -1064,13 +1102,6 @@ async function apiCall(action, data, opts) {
   }
 }
 
-// =============================================================================
-// UTILITIES
-// =============================================================================
-
-// =============================================================================
-// GLOBAL LOADING OVERLAY
-// =============================================================================
 let _loadingCount = 0;
 function showLoading(msg) {
   _loadingCount++;
@@ -1152,10 +1183,6 @@ function photoTag(url, cls) {
   return '👤';
 }
 
-// =============================================================================
-// NAVIGATION
-// =============================================================================
-
 function show(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const target = $(pageId);
@@ -1179,18 +1206,12 @@ function logout() {
   show('gateway');
 }
 
-// =============================================================================
-// GATEWAY LOGIN
-// =============================================================================
-
 function onGatewayUserTypeChange() {
   const selected = $('gwUserType').value;
   const labels = { student: 'Student ID', teacher: 'Teacher ID / Username', admin: 'Admin Username' };
   $('gwIdLabel').textContent = labels[selected] || 'Username';
   $('gwEmailWrap').classList.toggle('hidden', selected !== 'admin');
 }
-
-// ---- Forgot Password (swaps the login-form panel into a recovery form) ----
 
 function showForgotPassword() {
   $('gwLoginView').classList.add('hidden');
@@ -1279,10 +1300,6 @@ async function gatewayLogin() {
   }
 }
 
-// =============================================================================
-// PDF EXPORT (shared by the student portal's 3 printable sheets)
-// =============================================================================
-
 async function downloadSheetPdf(elementId, fileLabel) {
   const el = $(elementId);
   if (!el) return;
@@ -1314,10 +1331,6 @@ async function downloadSheetPdf(elementId, fileLabel) {
     hideLoading();
   }
 }
-
-// =============================================================================
-// STUDENT PORTAL
-// =============================================================================
 
 function enterStudentPortal() {
   const s = STATE.currentUser.data;
@@ -1469,10 +1482,6 @@ function renderPaymentSheet(s) {
     </div>`;
 }
 
-// =============================================================================
-// TEACHER PORTAL
-// =============================================================================
-
 async function enterTeacherPortal() {
   const t = STATE.currentUser.data;
   $('teacherGreeting').textContent = `Welcome, ${t.name}`;
@@ -1575,17 +1584,12 @@ async function teacherSaveGrades() {
   }
 }
 
-// =============================================================================
-// ADMIN PORTAL — INIT & TABS
-// =============================================================================
-
 async function enterAdminPortal() {
   populateAcademicYearSelects();
   $('adminSchoolYear').value = STATE.activeYear;
 
   await Promise.all([loadStudents(), loadTeachers(), loadSubjects(), loadPermissions()]);
 
-  adminTab('students');
   renderStudentList();
   renderTeacherList();
   renderSubjectList();
@@ -1596,6 +1600,7 @@ async function enterAdminPortal() {
     applyAdminRoleUI();
   renderSidebar();
   renderAdminStatCards();
+  renderAdminOverview();
   show('admin');
 }
 
@@ -1610,6 +1615,10 @@ function populateAcademicYearSelects() {
 function changeSchoolYear(year) {
   STATE.activeYear = year;
   renderStudentList();
+  if (STATE.adminTab === 'overview') {
+    buildAdminOverviewCards();
+    buildAdminOverviewTable();
+  }
   if ($('records').classList.contains('active') && STATE.recordStudentId) {
     $('scoreActiveYear').textContent = STATE.activeYear;
     renderRecordsList();
@@ -1618,9 +1627,11 @@ function changeSchoolYear(year) {
 
 function adminTab(tab) {
   STATE.adminTab = tab;
-  ['students', 'teachers', 'subjects'].forEach(t => {
-    $(`${t}Tab`).classList.toggle('hidden', t !== tab);
-    $(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`).classList.toggle('activeTab', t === tab);
+  ['overview', 'students', 'teachers', 'subjects'].forEach(t => {
+    const el = $(`${t}Tab`);
+    if (el) el.classList.toggle('hidden', t !== tab);
+    const btn = $(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+    if (btn) btn.classList.toggle('activeTab', t === tab);
   });
 }
 
@@ -1649,11 +1660,9 @@ async function loadPermissions() {
   $('adminDashTitle').textContent = isPrincipal ? 'Principal Dashboard' : (isRegistrar ? 'Registrar Dashboard' : 'Admin Dashboard');
   $('adminDashSubtitle').textContent = `${name} • Liberty Prayer Deliverance Ministries School System`;
 
-  // Teacher Management & Subject Log are Principal-only tabs.
   $('tabBtnTeachers').classList.toggle('hidden', !isPrincipal);
   $('tabBtnSubjects').classList.toggle('hidden', !isPrincipal);
 
-  // Registering new students is Registrar-only.
   const addBox = document.querySelector('.addStudentBox');
   if (addBox) addBox.classList.toggle('hidden', !isRegistrar);
 
@@ -1661,9 +1670,6 @@ async function loadPermissions() {
     adminTab('students');
   }
 }
-// =============================================================================
-// ADMIN — STUDENT MANAGEMENT
-// =============================================================================
 
 const STUDENTS_PAGE_SIZE = 5;
 
@@ -1677,7 +1683,7 @@ function getFilteredSortedStudents(filterText) {
   filtered.sort((a, b) => {
     const ta = new Date(a.updatedAt || 0).getTime();
     const tb = new Date(b.updatedAt || 0).getTime();
-    return tb - ta; // most recently updated first
+    return tb - ta;
   });
   return filtered;
 }
@@ -1929,10 +1935,6 @@ async function toggleLock(id, currentlyLocked) {
   }
 }
 
-// =============================================================================
-// ADMIN — SCORES MANAGEMENT (Records page)
-// =============================================================================
-
 function manageScores(id) {
   STATE.recordStudentId = id;
   const s = STATE.students.find(x => x.id === id);
@@ -2016,10 +2018,6 @@ async function deleteRecord(subject) {
   }
 }
 
-// =============================================================================
-// ADMIN — FINANCE MANAGEMENT
-// =============================================================================
-
 function isRegistrarUser() {
   return STATE.currentUser && STATE.currentUser.userType === 'admin' &&
     String((STATE.currentUser.data || {}).role || '').trim().toLowerCase() === 'registrar';
@@ -2031,13 +2029,13 @@ function isRegistrarUser() {
 }
    const SIDEBAR_CONFIG = {
   principal: [
-    { icon:'📊', label:'Dashboard', action:() => { show('admin'); adminTab('students'); } },
+    { icon:'📊', label:'Dashboard', action:() => renderAdminOverview() },
     { icon:'👨‍🎓', label:'Students', action:() => { show('admin'); adminTab('students'); } },
     { icon:'👨‍🏫', label:'Teachers', action:() => { show('admin'); adminTab('teachers'); } },
     { icon:'📚', label:'Subjects', action:() => { show('admin'); adminTab('subjects'); } }
   ],
   registrar: [
-    { icon:'📊', label:'Dashboard', action:() => { show('admin'); adminTab('students'); } },
+    { icon:'📊', label:'Dashboard', action:() => renderAdminOverview() },
     { icon:'👨‍🎓', label:'Students', action:() => { show('admin'); adminTab('students'); } }
   ],
   teacher: [
@@ -2086,7 +2084,141 @@ function renderSidebar() {
   $('topbarUserRole').textContent = key.charAt(0).toUpperCase() + key.slice(1);
   $('topbarUserIcon').innerHTML = photoTag(data.photo, '');
 }
-   function renderAdminStatCards() {
+
+/* =========================================================================
+   SYSTEM MANAGEMENT DASHBOARD (admin overview landing page)
+   Visual language reference: icon-topped stat cards each paired with a
+   direct action button, plus a clean "recently updated" records table with
+   inline Edit / View actions — all built from data & actions that already
+   exist elsewhere in this app (students, teachers, finance, grading).
+   ========================================================================= */
+function renderAdminOverview() {
+  show('admin');
+  adminTab('overview');
+  buildAdminOverviewCards();
+  buildAdminOverviewTable();
+}
+
+function buildAdminOverviewCards() {
+  const box = $('overviewStatCards');
+  if (!box) return;
+  const yrEl = $('ovFooterYear');
+  if (yrEl) yrEl.textContent = STATE.activeYear;
+  const principal = isPrincipalUser();
+  const yearStudents = STATE.students.filter(s => String(s.academicYear) === String(STATE.activeYear));
+  const studentCount = yearStudents.length;
+
+  let cardsHtml = `
+    <div class="ovCard">
+      <div class="ovCardIcon ovIconBlue">👨‍🎓</div>
+      <div class="ovCardBody">
+        <div class="ovCardNum">${studentCount}</div>
+        <div class="ovCardLabel">Student${studentCount === 1 ? '' : 's'}</div>
+        ${!principal ? `<button class="ovCardBtn" onclick="jumpToAddStudent()">Register</button>` : `<button class="ovCardBtn light" onclick="adminTab('students')">View</button>`}
+      </div>
+    </div>`;
+
+  if (principal) {
+    const lockedCount = yearStudents.filter(s => s.gradeLocked).length;
+    cardsHtml += `
+    <div class="ovCard">
+      <div class="ovCardIcon ovIconTeal">👨‍🏫</div>
+      <div class="ovCardBody">
+        <div class="ovCardNum">${STATE.teachers.length}</div>
+        <div class="ovCardLabel">Teacher${STATE.teachers.length === 1 ? '' : 's'}</div>
+        <button class="ovCardBtn" onclick="adminTab('teachers')">Teachers</button>
+      </div>
+    </div>
+    <div class="ovCard">
+      <div class="ovCardIcon ovIconGold">🔒</div>
+      <div class="ovCardBody">
+        <div class="ovCardNum">${lockedCount}</div>
+        <div class="ovCardLabel">Locked Sheets</div>
+        <button class="ovCardBtn" onclick="adminTab('teachers')">Permissions</button>
+      </div>
+    </div>`;
+  } else {
+    const totalBalance = yearStudents.reduce((sum, s) => {
+      const f = s.finance || {};
+      const paid = (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
+      return sum + Math.max(0, toNum(f.tuitionTotal) - paid);
+    }, 0);
+    const paidCount = yearStudents.filter(s => (s.finance || {}).registrationPaid).length;
+    cardsHtml += `
+    <div class="ovCard">
+      <div class="ovCardIcon ovIconTeal">✅</div>
+      <div class="ovCardBody">
+        <div class="ovCardNum">${paidCount}</div>
+        <div class="ovCardLabel">Registrations Paid</div>
+        <button class="ovCardBtn" onclick="adminTab('students')">Students</button>
+      </div>
+    </div>
+    <div class="ovCard">
+      <div class="ovCardIcon ovIconGold">💳</div>
+      <div class="ovCardBody">
+        <div class="ovCardNum">${totalBalance.toLocaleString()}</div>
+        <div class="ovCardLabel">Outstanding Balance</div>
+        <button class="ovCardBtn" onclick="adminTab('students')">Finance</button>
+      </div>
+    </div>`;
+  }
+
+  box.innerHTML = cardsHtml;
+}
+
+function jumpToAddStudent() {
+  adminTab('students');
+  setTimeout(() => document.querySelector('.addStudentBox')?.scrollIntoView({ behavior: 'smooth' }), 50);
+}
+
+function buildAdminOverviewTable() {
+  const wrap = $('overviewTableWrap');
+  if (!wrap) return;
+  const principal = isPrincipalUser();
+  const recent = getFilteredSortedStudents('').slice(0, 8);
+
+  if (!recent.length) {
+    wrap.innerHTML = '<p class="muted" style="padding:14px 0;">No student records yet for this academic year.</p>';
+    return;
+  }
+
+  const rows = recent.map(s => {
+    const yearlyAvg = studentSubjectsForYear(s, s.academicYear).length ? studentYearlyAverage(s, s.academicYear) : 0;
+    const g = gradeFor(yearlyAvg);
+    const f = s.finance || {};
+    const installments = f.installments || [0, 0, 0, 0];
+    const balance = Math.max(0, toNum(f.tuitionTotal) - installments.reduce((a,b)=>a+toNum(b),0));
+    const updated = s.updatedAt ? s.updatedAt.slice(0, 10) : '—';
+
+    const metricCell = principal
+      ? `${yearlyAvg ? yearlyAvg.toFixed(1) : '-'} <span class="muted">(${g.grade})</span>`
+      : `<span class="${balance > 0 ? 'fail' : 'pass'}">${formatMoney(balance, f.currency)}</span>`;
+
+    const editAction = principal
+      ? `<a class="ovLink" data-action="manageScores" data-id="${esc(s.id)}">Edit</a>`
+      : `<a class="ovLink" data-action="editStudent" data-id="${esc(s.id)}">Edit</a>`;
+
+    return `<tr>
+      <td class="ovNameCell"><div class="thumb small">${photoTag(s.photo, '')}</div><div><b>${esc(s.name)}</b><br><span class="muted">${esc(s.id)}</span></div></td>
+      <td>${esc(s.className)}</td>
+      <td>${esc(updated)}</td>
+      <td>${metricCell}</td>
+      <td class="ovActionsCell">${editAction} <a class="ovLink ovLinkBadge" data-action="${principal ? 'manageScores' : 'manageFinance'}" data-id="${esc(s.id)}">View</a></td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <table class="ovTable">
+      <thead><tr>
+        <th>Student</th><th>Class</th><th>Last Updated</th><th>${principal ? 'Year Avg (Grade)' : 'Balance'}</th><th>Actions</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderAdminStatCards() {
+  // legacy stat row kept in sync for pages that still reference it; the
+  // System Management Dashboard uses buildAdminOverviewCards() instead.
   const box = $('adminStatCards');
   if (!box) return;
   const studentCount = STATE.students.filter(s => String(s.academicYear) === String(STATE.activeYear)).length;
@@ -2228,10 +2360,6 @@ async function clearFinance() {
   }
 }
 
-// =============================================================================
-// ADMIN — TEACHER MANAGEMENT & PERMISSIONS
-// =============================================================================
-
 function renderPermissionCheckboxes() {
   PERIOD_KEYS.forEach(k => { $(`perm_${k}`).checked = !!STATE.permissions[k]; });
 }
@@ -2368,10 +2496,6 @@ function renderTeacherList() {
   }).join('') || '<p class="muted">No teachers enrolled yet.</p>';
 }
 
-// =============================================================================
-// ADMIN — SUBJECT MANAGEMENT
-// =============================================================================
-
 async function addSubject() {
   const val = $('newSubject').value.trim();
   if (!val) return;
@@ -2407,10 +2531,6 @@ function renderSubjectList() {
     </div>`).join('') || '<p class="muted">No subjects added yet.</p>';
 }
 
-// =============================================================================
-// EVENT DELEGATION (list action buttons rendered via innerHTML)
-// =============================================================================
-
 function handleDelegatedClick(e) {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
@@ -2440,10 +2560,6 @@ function handleDelegatedClick(e) {
   }
 }
 
-// =============================================================================
-// INIT
-// =============================================================================
-
 document.addEventListener('DOMContentLoaded', () => {
   document.body.addEventListener('click', handleDelegatedClick);
   ['registrationFee', 'tuitionTotal', 'inst1', 'inst2', 'inst3', 'inst4', 'currency', 'otherPayments'].forEach(id => {    $(id).addEventListener('input', renderFinanceCalc);
@@ -2451,7 +2567,6 @@ document.addEventListener('DOMContentLoaded', () => {
   onGatewayUserTypeChange();
   show('gateway');
 });
-
 </script>
 </body>
 </html>
