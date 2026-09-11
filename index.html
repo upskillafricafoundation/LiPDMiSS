@@ -815,10 +815,44 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
           <tbody id="teacherGradeTableBody"></tbody>
         </table>
       </div>
-      <div class="teacherTableFooter">
+            <div class="teacherTableFooter">
         <p class="muted"><small>🔒 Gray badges with lock icons indicate previously submitted grades (locked). Only empty inputs for Admin-opened periods can be filled.</small></p>
         <button onclick="teacherSaveGrades()">💾 Submit Class Grades</button>
       </div>
+    </div>
+
+    <div class="box">
+      <h3>📝 Submit Period Lesson Plan</h3>
+      <p class="muted">Log the lesson plan you're teaching this period for Admin/Principal review.</p>
+      <div class="grid">
+        <label>Class
+          <select id="lpClass"></select>
+        </label>
+        <label>Subject
+          <select id="lpSubject"></select>
+        </label>
+        <label>Period
+          <select id="lpPeriod">
+            <option value="p1">1st Period</option>
+            <option value="p2">2nd Period</option>
+            <option value="p3">3rd Period</option>
+            <option value="exam1">1st Sem Exam</option>
+            <option value="p4">4th Period</option>
+            <option value="p5">5th Period</option>
+            <option value="p6">6th Period</option>
+            <option value="exam2">2nd Sem Exam</option>
+          </select>
+        </label>
+        <label class="fullSpan">Lesson Title
+          <input id="lpTitle" placeholder="e.g. Introduction to Fractions">
+        </label>
+        <label class="fullSpan">Lesson Details / Objectives
+          <input id="lpDetails" placeholder="Brief plan, objectives, materials...">
+        </label>
+      </div>
+      <button onclick="submitLessonPlan()">📤 Submit Lesson Plan</button>
+      <h4 class="semTitle">My Recent Submissions</h4>
+      <div id="myLessonPlansList"></div>
     </div>
   </section>
 
@@ -906,7 +940,11 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
           <p class="muted">A live overview of students, teachers, and records across LiPDMiSS.</p>
         </div>
       </div>
-      <div class="ovCardsRow" id="overviewStatCards"></div>
+            <div class="ovCardsRow" id="overviewStatCards"></div>
+      <div class="ovTableCard" style="margin-bottom:26px;">
+        <div class="ovTableHeader"><h4>Students by Class</h4></div>
+        <div id="ovClassChart"></div>
+      </div>
       <div class="ovTableCard">
         <div class="ovTableHeader">
           <h4>Recently Updated Student Records</h4>
@@ -917,9 +955,10 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       <div class="ovFooterBar">LiPDMiSS System Management • <span id="ovFooterYear"></span> academic year</div>
     </div>
 
-    <div class="tabs">
+        <div class="tabs">
       <button id="tabBtnStudents" class="activeTab" onclick="adminTab('students')">👨‍🎓 Student Management</button>
-      <button id="tabBtnTeachers" onclick="adminTab('teachers')">👨‍🏫 Teacher Management &amp; Permissions</button>
+      <button id="tabBtnTeachers" onclick="adminTab('teachers')">👨‍🏫 Teacher Management</button>
+      <button id="tabBtnPermissions" onclick="adminTab('permissions')">🗓️ Grading &amp; Lesson Plans</button>
       <button id="tabBtnSubjects" onclick="adminTab('subjects')">📚 Subject Log</button>
     </div>
 
@@ -935,8 +974,9 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         <div id="studentList"></div>
       <div id="studentPaginationBar" class="paginationBar"></div>
     </div>
- <div class="box addStudentBox">
-        <h3>➕ Add New Student Record</h3>
+  <details class="collapsible" id="addStudentCollapsible">
+        <summary>➕ Add New Student Record <span class="collapsibleHint">click to expand</span></summary>
+        <div class="collapsibleBody">
         <div class="grid">
           <label>Student ID *
             <input id="newId" placeholder="e.g. STU-1001">
@@ -975,12 +1015,65 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
             <input id="newGradeLocked" type="checkbox"> Lock this student's grade sheet from view immediately after adding
           </label>
         </div>
-        <button onclick="addStudent()">Add Student Record</button>
+          <button onclick="addStudent()">Add Student Record</button>
       </div>
+      </details>
 
 
     <!-- TEACHER MANAGEMENT & PERMISSIONS TAB -->
-    <div id="teachersTab" class="hidden">
+     <div id="teachersTab" class="hidden">
+      <details class="collapsible" open>
+        <summary>📋 Registered Teachers (<span id="teacherCount">0</span>) <span class="collapsibleHint">click to collapse</span></summary>
+        <div class="collapsibleBody">
+          <div id="teacherList"></div>
+        </div>
+      </details>
+
+      <details class="collapsible">
+        <summary>🏫 Class &amp; Subject Assignments Overview</summary>
+        <div class="collapsibleBody">
+          <div id="assignmentsOverview"></div>
+        </div>
+      </details>
+
+      <details class="collapsible">
+        <summary>➕ Add Teacher &amp; Assign Classes</summary>
+        <div class="collapsibleBody">
+          <div class="grid">
+            <label>Teacher ID / Username *
+              <input id="newTeacherId" placeholder="e.g. TCH-101">
+            </label>
+            <label>Teacher Full Name *
+              <input id="newTeacherName" placeholder="e.g. Mr. David Kollie">
+            </label>
+            <label>Teacher Login Password *
+              <input id="newTeacherPass" placeholder="Login password">
+            </label>
+            <label>Phone / Contact
+              <input id="newTeacherPhone" placeholder="e.g. +231-770-000000">
+            </label>
+            <label>Employment Status
+              <select id="newTeacherStatus">
+                <option value="Active">Active</option>
+                <option value="Suspended">Suspended</option>
+                <option value="Resigned">Resigned</option>
+                <option value="Fired">Fired</option>
+              </select>
+            </label>
+          </div>
+
+          <h4 class="semTitle">Class &amp; Subject Assignments *</h4>
+          <p class="muted">A teacher can be assigned to any number of classes, each with its own set of subjects.</p>
+          <div id="teacherAssignmentsBuilder" class="assignmentsBuilder"></div>
+          <button type="button" class="light" onclick="addAssignmentRow()">➕ Add Class Assignment</button>
+          <br>
+          <button onclick="addTeacher()">Add Teacher Record</button>
+        </div>
+      </details>
+    </div>
+
+    <!-- GRADING PERMISSIONS & LESSON PLANS TAB -->
+    <div id="permissionsTab" class="hidden">
       <div class="box permissionBox">
         <h3>🔓 Periodic Grading Submission Permissions</h3>
         <p class="muted">Select which assessment periods teachers are permitted to submit grades for. Teachers can only add grades for open periods; previously entered grades are permanently locked against teacher edits.</p>
@@ -1003,35 +1096,17 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         </div>
       </div>
 
-      <!-- ADD TEACHER — multi-class / multi-subject assignment builder -->
       <div class="box">
-        <h3>➕ Add Teacher &amp; Assign Classes</h3>
-        <div class="grid">
-          <label>Teacher ID / Username *
-            <input id="newTeacherId" placeholder="e.g. TCH-101">
-          </label>
-          <label>Teacher Full Name *
-            <input id="newTeacherName" placeholder="e.g. Mr. David Kollie">
-          </label>
-          <label>Teacher Login Password *
-            <input id="newTeacherPass" placeholder="Login password">
-          </label>
-          <label>Phone / Contact
-            <input id="newTeacherPhone" placeholder="e.g. +231-770-000000">
+        <div class="directoryHeader">
+          <h3>📑 Teacher Period Lesson Plans</h3>
+          <label class="studentSearch">
+            <span>Filter by Class:</span>
+            <select id="lpClassFilter" onchange="renderAdminLessonPlans()">
+              <option value="">All Classes</option>
+            </select>
           </label>
         </div>
-
-        <h4 class="semTitle">Class &amp; Subject Assignments *</h4>
-        <p class="muted">A teacher can be assigned to any number of classes, each with its own set of subjects.</p>
-        <div id="teacherAssignmentsBuilder" class="assignmentsBuilder"></div>
-        <button type="button" class="light" onclick="addAssignmentRow()">➕ Add Class Assignment</button>
-        <br>
-        <button onclick="addTeacher()">Add Teacher Record</button>
-      </div>
-
-      <div class="box">
-        <h3>📋 Registered Teachers (<span id="teacherCount">0</span>)</h3>
-        <div id="teacherList"></div>
+        <div id="adminLessonPlansList"></div>
       </div>
     </div>
 
@@ -1733,12 +1808,56 @@ async function enterTeacherPortal() {
   const classes = (t.assignments || []).map(a => a.class);
   classSelect.innerHTML = classes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
   onTeacherClassChange();
+  populateLessonPlanSelectors();
+  await loadMyLessonPlans();
 
    renderSidebar();
   renderTeacherStatCards();
   show('teacher');
 }
+function populateLessonPlanSelectors() {
+  const t = STATE.currentUser.data;
+  const classes = (t.assignments || []).map(a => a.class);
+  $('lpClass').innerHTML = classes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  onLpClassChange();
+  $('lpClass').onchange = onLpClassChange;
+}
+function onLpClassChange() {
+  const t = STATE.currentUser.data;
+  const cls = $('lpClass').value;
+  const a = (t.assignments || []).find(x => x.class === cls);
+  $('lpSubject').innerHTML = (a ? a.subjects : []).map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+}
 
+async function submitLessonPlan() {
+  const t = STATE.currentUser.data;
+  const plan = {
+    teacherId: t.id, teacherName: t.name,
+    className: $('lpClass').value, subject: $('lpSubject').value, period: $('lpPeriod').value,
+    title: $('lpTitle').value.trim(), details: $('lpDetails').value.trim()
+  };
+  if (!plan.className || !plan.subject || !plan.title) { alert('Class, Subject, and Lesson Title are required.'); return; }
+  const result = await apiCall('submitLessonPlan', { plan: plan });
+  if (result.success) {
+    alert(result.message);
+    $('lpTitle').value = '';
+    $('lpDetails').value = '';
+    await loadMyLessonPlans();
+  }
+}
+
+async function loadMyLessonPlans() {
+  const t = STATE.currentUser.data;
+  const res = await apiCall('getLessonPlans', { teacherId: t.id }, { silent: true });
+  const list = (res.success && res.plans) || [];
+  $('myLessonPlansList').innerHTML = list.map(p => `
+    <div class="item">
+      <div><b>${esc(p.title)}</b> <span class="muted">— ${esc(p.className)} • ${esc(p.subject)} • ${esc(PERIOD_LABELS[p.period] || p.period)}</span><br>
+      <small class="muted">${esc(p.submittedAt)}</small></div>
+    </div>`).join('') || '<p class="muted">No lesson plans submitted yet.</p>';
+}
+
+function renderTeacherPermissionBadges() {
 function renderTeacherPermissionBadges() {
   const box = $('teacherPermissionsStatus');
   box.innerHTML = PERIOD_KEYS.map(k => {
@@ -1828,14 +1947,43 @@ async function enterAdminPortal() {
   renderTeacherList();
   renderSubjectList();
   renderPermissionCheckboxes();
-   resetAssignmentsBuilder();
+       resetAssignmentsBuilder();
   addAssignmentRow();
+  populateLessonPlanFilter();
+  if (isPrincipalUser()) await loadAdminLessonPlans();
 
     applyAdminRoleUI();
   renderSidebar();
   renderAdminStatCards();
   renderAdminOverview();
   show('admin');
+}
+
+function populateLessonPlanFilter() {
+  const sel = $('lpClassFilter');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">All Classes</option>' + GRADE_LEVELS.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+}
+
+async function loadAdminLessonPlans() {
+  const res = await apiCall('getLessonPlans', { actorRole: currentActorRole() }, { silent: true });
+  STATE.lessonPlans = (res.success && res.plans) || [];
+  renderAdminLessonPlans();
+}
+
+function renderAdminLessonPlans() {
+  const box = $('adminLessonPlansList');
+  if (!box) return;
+  const filterClass = $('lpClassFilter') ? $('lpClassFilter').value : '';
+  const list = (STATE.lessonPlans || []).filter(p => !filterClass || p.className === filterClass);
+  box.innerHTML = list.map(p => `
+    <div class="item" style="align-items:flex-start;">
+      <div>
+        <b>${esc(p.title)}</b> <span class="muted">— ${esc(p.className)} • ${esc(p.subject)} • ${esc(PERIOD_LABELS[p.period] || p.period)}</span><br>
+        <span>${esc(p.details)}</span><br>
+        <small class="muted">By ${esc(p.teacherName)} • ${esc(p.submittedAt)}</small>
+      </div>
+    </div>`).join('') || '<p class="muted">No lesson plans submitted yet.</p>';
 }
 
 function populateAcademicYearSelects() {
@@ -1860,8 +2008,9 @@ function changeSchoolYear(year) {
 }
 
 function adminTab(tab) {
+ function adminTab(tab) {
   STATE.adminTab = tab;
-  ['overview', 'students', 'teachers', 'subjects'].forEach(t => {
+  ['overview', 'students', 'teachers', 'permissions', 'subjects'].forEach(t => {
     const el = $(`${t}Tab`);
     if (el) el.classList.toggle('hidden', t !== tab);
     const btn = $(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -1895,12 +2044,13 @@ async function loadPermissions() {
   $('adminDashSubtitle').textContent = `${name} • Liberty Prayer Deliverance Ministries School System`;
 
   $('tabBtnTeachers').classList.toggle('hidden', !isPrincipal);
+  $('tabBtnPermissions').classList.toggle('hidden', !isPrincipal);
   $('tabBtnSubjects').classList.toggle('hidden', !isPrincipal);
 
   const addBox = $('addStudentCollapsible');
 if (addBox) addBox.classList.toggle('hidden', !isRegistrar);
 
-  if (!isPrincipal && (STATE.adminTab === 'teachers' || STATE.adminTab === 'subjects')) {
+   if (!isPrincipal && (STATE.adminTab === 'teachers' || STATE.adminTab === 'permissions' || STATE.adminTab === 'subjects')) {
     adminTab('students');
   }
 }
@@ -2268,6 +2418,7 @@ const SIDEBAR_CONFIG = {
     { icon:'📊', label:'Dashboard', action:() => renderAdminOverview() },
     { icon:'👨‍🎓', label:'Students', action:() => { show('admin'); adminTab('students'); } },
     { icon:'👨‍🏫', label:'Teachers', action:() => { show('admin'); adminTab('teachers'); } },
+    { icon:'🗓️', label:'Grading', action:() => { show('admin'); adminTab('permissions'); } },
     { icon:'📚', label:'Subjects', action:() => { show('admin'); adminTab('subjects'); } },
     { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }
   ],
@@ -2402,7 +2553,29 @@ function buildAdminOverviewCards() {
     </div>`;
   }
 
-  box.innerHTML = cardsHtml;
+    box.innerHTML = cardsHtml;
+  renderClassBarChart();
+}
+
+function renderClassBarChart() {
+  const el = $('ovClassChart');
+  if (!el) return;
+  const yearStudents = STATE.students.filter(s => String(s.academicYear) === String(STATE.activeYear));
+  const counts = {};
+  yearStudents.forEach(s => { counts[s.className] = (counts[s.className] || 0) + 1; });
+  const entries = Object.entries(counts);
+  if (!entries.length) { el.innerHTML = '<p class="muted">No students to chart for this academic year.</p>'; return; }
+  const max = Math.max(...entries.map(e => e[1]));
+  el.innerHTML = `<div style="display:flex;align-items:flex-end;gap:14px;height:180px;padding:10px 4px;overflow-x:auto;">
+    ${entries.map(([cls, count]) => {
+      const h = Math.max(6, Math.round((count / max) * 150));
+      return `<div style="display:flex;flex-direction:column;align-items:center;min-width:52px;">
+        <div class="muted" style="font-size:11px;font-weight:800;margin-bottom:4px;">${count}</div>
+        <div style="width:34px;height:${h}px;background:linear-gradient(180deg,#103db8,#20c9a6);border-radius:6px 6px 0 0;"></div>
+        <div style="font-size:10.5px;color:#64748b;font-weight:700;margin-top:6px;text-align:center;max-width:64px;">${esc(cls)}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 
 function jumpToAddStudent() {
@@ -2724,6 +2897,7 @@ function collectAssignmentsFromBuilder() {
 
 function clearTeacherForm() {
   ['newTeacherId', 'newTeacherName', 'newTeacherPass', 'newTeacherPhone'].forEach(id => $(id).value = '');
+  $('newTeacherStatus').value = 'Active';
   resetAssignmentsBuilder();
   addAssignmentRow();
   STATE.editingTeacherId = null;
@@ -2732,15 +2906,15 @@ function clearTeacherForm() {
 async function addTeacher() {
   const id = $('newTeacherId').value.trim();
   const name = $('newTeacherName').value.trim();
-  const password = $('newTeacherPass').value.trim();
+    const password = $('newTeacherPass').value.trim();
   const phone = $('newTeacherPhone').value.trim();
+  const status = $('newTeacherStatus').value;
   const assignments = collectAssignmentsFromBuilder();
 
   if (!id || !name || !password) { alert('Teacher ID, Name, and Password are required.'); return; }
   if (!assignments.length) { alert('Add at least one class assignment with at least one subject checked.'); return; }
 
-  const teacher = { id: id, name: name, password: password, phone: phone, assignments: assignments };
-
+  const teacher = { id: id, name: name, password: password, phone: phone, status: status, assignments: assignments };
   let result;
   if (STATE.editingTeacherId) {
     teacher.id = STATE.editingTeacherId;
@@ -2765,6 +2939,7 @@ function editTeacher(id) {
   $('newTeacherName').value = t.name;
   $('newTeacherPass').value = t.password || '';
   $('newTeacherPhone').value = t.phone || '';
+  $('newTeacherStatus').value = t.status || 'Active';
   resetAssignmentsBuilder();
   (t.assignments || []).forEach(a => addAssignmentRow(a));
   if (!(t.assignments || []).length) addAssignmentRow();
@@ -2780,22 +2955,74 @@ async function deleteTeacher(id) {
   }
 }
 
+const TEACHER_STATUS_BADGE = {
+  Active: 'background:#dcfce7;color:#15803d',
+  Suspended: 'background:#fef9c3;color:#92400e',
+  Resigned: 'background:#f1f5f9;color:#64748b',
+  Fired: 'background:#fee2e2;color:#b91c1c'
+};
+
 function renderTeacherList() {
   $('teacherCount').textContent = STATE.teachers.length;
   $('teacherList').innerHTML = STATE.teachers.map(t => {
     const tags = (t.assignments || []).map(a => `<span class="teacherAssignmentTag">${esc(a.class)}: ${esc((a.subjects || []).join(', ') || 'no subjects')}</span>`).join('');
+    const status = t.status || 'Active';
+    const badgeStyle = TEACHER_STATUS_BADGE[status] || TEACHER_STATUS_BADGE.Active;
     return `<div class="item">
       <div style="flex:1;min-width:220px;">
-        <b>${esc(t.name)}</b> <span class="muted">(${esc(t.id)})</span><br>
+        <b>${esc(t.name)}</b> <span class="muted">(${esc(t.id)})</span>
+        <span class="lockBadge" style="${badgeStyle}">${esc(status)}</span><br>
         <span class="muted">📞 ${esc(t.phone) || '—'}</span><br>
         <div style="margin-top:6px;">${tags || '<span class="muted">No class assignments.</span>'}</div>
       </div>
       <div class="studentCardActions">
+        <label class="muted" style="font-size:11px;">Status:
+          <select onchange="updateTeacherStatus('${esc(t.id)}', this.value)" style="width:auto;display:inline-block;margin:0 0 0 4px;padding:4px 6px;">
+            <option value="Active" ${status==='Active'?'selected':''}>Active</option>
+            <option value="Suspended" ${status==='Suspended'?'selected':''}>Suspended</option>
+            <option value="Resigned" ${status==='Resigned'?'selected':''}>Resigned</option>
+            <option value="Fired" ${status==='Fired'?'selected':''}>Fired</option>
+          </select>
+        </label>
         <button class="light" data-action="editTeacher" data-id="${esc(t.id)}">✏️ Edit</button>
         <button class="danger" data-action="deleteTeacher" data-id="${esc(t.id)}">🗑 Delete</button>
       </div>
     </div>`;
   }).join('') || '<p class="muted">No teachers enrolled yet.</p>';
+
+  renderAssignmentsOverview();
+}
+
+function renderAssignmentsOverview() {
+  const box = $('assignmentsOverview');
+  if (!box) return;
+  const byClass = {};
+  STATE.teachers.forEach(t => {
+    (t.assignments || []).forEach(a => {
+      if (!byClass[a.class]) byClass[a.class] = [];
+      byClass[a.class].push({ teacher: t.name, subjects: a.subjects || [] });
+    });
+  });
+  const classes = Object.keys(byClass).sort();
+  if (!classes.length) { box.innerHTML = '<p class="muted">No class assignments yet.</p>'; return; }
+  box.innerHTML = classes.map(c => `
+    <div class="item" style="align-items:flex-start;">
+      <div style="flex:1;">
+        <b>${esc(c)}</b><br>
+        ${byClass[c].map(x => `<span class="muted">${esc(x.teacher)}: </span>${esc(x.subjects.join(', ') || 'no subjects')}<br>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+async function updateTeacherStatus(id, status) {
+  const result = await apiCall('updateTeacher', { teacher: { id: id, status: status }, actorRole: currentActorRole() }, { silent: true });
+  if (result.success) {
+    const t = STATE.teachers.find(x => x.id === id);
+    if (t) t.status = status;
+    renderTeacherList();
+  } else {
+    alert(result.message || 'Could not update teacher status.');
+  }
 }
 
 async function addSubject() {
