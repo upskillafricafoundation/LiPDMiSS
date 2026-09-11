@@ -175,8 +175,20 @@ select.gwUnderlineInput { padding: 9px 2px 9px 0; background: #fff; }
 
 /* STUDENT CARD IN ADMIN LIST */
 .studentCard { display: flex; align-items: center; gap: 16px; }
-.thumb { width: 75px; height: 90px; object-fit: cover; border-radius: 8px; border: 2px solid #cbd5e1; background: #e2e8f0; display: grid; place-items: center; font-size: 28px; color: #64748b; }
-.studentCardActions { display: flex; gap: 6px; flex-wrap: wrap; }
+.thumb {
+  width: 75px; height: 90px;
+  border-radius: 8px; border: 2px solid #cbd5e1;
+  background: #e2e8f0;
+  display: grid; place-items: center;
+  font-size: 28px; color: #64748b;
+  overflow: hidden;           /* clip any oversized photo to the box */
+  flex-shrink: 0;             /* keep it from squashing in flex rows */
+}
+.thumb img {
+  width: 100%; height: 100%;
+  object-fit: cover;          /* now object-fit actually applies to the image */
+  display: block;
+}.studentCardActions { display: flex; gap: 6px; flex-wrap: wrap; }
 .directoryHeader { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin: 25px 0 10px; flex-wrap: wrap; }
 .studentSearch { display: flex; align-items: center; gap: 8px; }
 .studentSearch input { min-width: 280px; margin: 0; padding: 8px 12px; }
@@ -1465,7 +1477,7 @@ function formatMoney(n, currency) {
 }
 
 function photoTag(url, cls) {
-  if (url) return `<img class="${cls}" src="${esc(url)}" alt="Photo" onerror="this.parentElement.innerHTML='👤'">`;
+  if (url) return `<img class="${esc(cls)}" src="${esc(url)}" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.parentElement.innerHTML='👤'">`;
   return '👤';
 }
 
