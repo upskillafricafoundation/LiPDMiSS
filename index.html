@@ -1634,7 +1634,50 @@ async function enterStudentPortal() {
   renderSidebar();
   show('student');
 }
+function printMessage(id) {
+  const m = (STATE.inboxMessages || []).find(x => String(x.id) === String(id));
+  if (!m) return;
 
+  const recipientLabel = m.recipientType === 'all'
+    ? 'All Users'
+    : `${esc(m.recipientType.charAt(0).toUpperCase() + m.recipientType.slice(1))}${m.recipientId ? ' — ' + esc(m.recipientId) : ' (Broadcast to role)'}`;
+
+  const printHtml = `
+    <div class="a4Sheet">
+      <div class="a4Header">
+        <p class="a4School">${esc(APP_CONFIG.SCHOOL_NAME)}</p>
+        <p class="a4Motto">${esc(APP_CONFIG.MOTTO)}</p>
+        <p class="a4DocTitle">INTERNAL MESSAGE</p>
+      </div>
+
+      <table class="a4MetaTable">
+        <tr><td class="a4Label">From</td><td>${esc(m.senderName)} — ${esc(m.senderRole)}${m.senderId ? ' (' + esc(m.senderId) + ')' : ''}</td></tr>
+        <tr><td class="a4Label">To</td><td>${recipientLabel}</td></tr>
+        <tr><td class="a4Label">Subject</td><td>${esc(m.subject)}</td></tr>
+        <tr><td class="a4Label">Date Sent</td><td>${esc(m.sentAt)}</td></tr>
+      </table>
+
+      <div style="border:1px solid #999; padding:16px; margin-bottom:20px; white-space:pre-wrap; font-size:13px; line-height:1.6;">${esc(m.body)}</div>
+
+      ${m.attachmentUrl ? `<p style="font-size:12px;">📎 Attachment on file: ${esc(m.attachmentName)}</p>` : ''}
+
+      <div class="a4SignRow">
+        <div>Recipient's Signature</div>
+        <div>Date Received</div>
+      </div>
+
+      <div class="a4Footer">Printed ${new Date().toLocaleDateString()} • ${esc(APP_CONFIG.SCHOOL_NAME)} — LiPDMiSS Portal</div>
+    </div>`;
+
+  const styles = Array.from(document.querySelectorAll('style')).map(s => s.outerHTML).join('');
+  const printWin = window.open('', '_blank');
+  printWin.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Message — ${esc(m.subject)}</title>${styles}
+    <style>body{background:#fff;margin:0;padding:20px;}</style>
+  </head><body>${printHtml}</body></html>`);
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => { printWin.print(); }, 400);
+}
 function studentHeaderHtml(sheetLabel, s) {
   return `
     <div class="studentHeader">
@@ -2464,11 +2507,12 @@ const SIDEBAR_CONFIG = {
     { icon:'📊', label:'Dashboard', action:() => show('teacher') },
     { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }
   ],
-  student: [
-    { icon:'📊', label:'Dashboard', action:() => show('student') },
-    { icon:'📝', label:'Grade Sheet', action:() => show('studentGrades') },
-    { icon:'💳', label:'Payment Record', action:() => show('studentFinance') }
-  ]
+student: [
+  { icon:'📊', label:'Dashboard', action:() => show('student') },
+  { icon:'📝', label:'Grade Sheet', action:() => show('studentGrades') },
+  { icon:'💳', label:'Payment Record', action:() => show('studentFinance') },
+  { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }   // ← add this
+]
 };
 
 function currentPortalRoleKey() {
@@ -2819,13 +2863,17 @@ async function loadInbox() {
   const who = currentInboxIdentity();
   const res = await apiCall('getMessages', { recipientType: who.type, recipientId: who.id }, { silent: true });
   const msgs = (res.success && res.messages) || [];
+  STATE.inboxMessages = msgs; // keep a lookup so the print button can find the full message
   $('inboxList').innerHTML = msgs.map(m => `
-    <div class="item">
+    <div class="item" style="align-items:flex-start;">
       <div>
         <b>${esc(m.subject)}</b> <span class="muted">from ${esc(m.senderName)} (${esc(m.senderRole)})</span><br>
         <span>${esc(m.body)}</span><br>
         ${m.attachmentUrl ? `<a href="${esc(m.attachmentUrl)}" target="_blank">📎 ${esc(m.attachmentName)}</a><br>` : ''}
         <small class="muted">${esc(m.sentAt)}</small>
+      </div>
+      <div class="studentCardActions">
+        <button class="light" data-action="printMessage" data-id="${esc(m.id)}">🖨️ Print</button>
       </div>
     </div>`).join('') || '<p class="muted">No messages yet.</p>';
 }
@@ -3130,9 +3178,10 @@ function handleDelegatedClick(e) {
     case 'removeSubject': removeSubject(id); break;
     case 'editRecord': editRecord(btn.dataset.subject); break;
     case 'deleteRecord': deleteRecord(btn.dataset.subject); break;
-      case 'removeAssignmentRow': removeAssignmentRow(btn.dataset.row); break;
+   case 'removeAssignmentRow': removeAssignmentRow(btn.dataset.row); break;
     case 'toggleGradeExpand': toggleGradeExpand(btn.dataset.row, btn); break;
     case 'studentPrevPage':
+   case 'printMessage': printMessage(id); break;
       STATE.studentPage = Math.max(0, (STATE.studentPage || 0) - 1);
       renderStudentList(STATE.studentSearchText);
       break;
