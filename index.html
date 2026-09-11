@@ -357,10 +357,41 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 .gradeMiniTable th { background: #103db8; }
 .paginationBar { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 14px 0; }
 .financeRoleNotice { background: #fff7ed; border: 1px dashed #f59e0b; color: #92400e; padding: 12px 16px; border-radius: 10px; font-weight: bold; margin-bottom: 12px; }
+
+   /* ============================================================
+   GLOBAL LOADING OVERLAY — blocks the whole screen while any
+   async action (API call or PDF export) is in flight, so a
+   second click can't fire a duplicate request.
+   ============================================================ */
+#globalLoadingOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 47, 80, 0.4);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 99999;
+}
+#globalLoadingOverlay.show { display: flex; }
+.gloSpinner {
+  width: 54px; height: 54px;
+  border: 5px solid rgba(255,255,255,0.35);
+  border-top-color: #ffd000;
+  border-radius: 50%;
+  animation: gloSpin 0.8s linear infinite;
+}
+.gloText { color: #fff; font-weight: 800; font-size: 14px; letter-spacing: 0.5px; }
+@keyframes gloSpin { to { transform: rotate(360deg); } }
 </style>
 </head>
-<body>
 
+   <body>
+<div id="globalLoadingOverlay">
+  <div class="gloSpinner"></div>
+  <div class="gloText" id="gloText">Please wait…</div>
+</div>
 <header>
   <div class="brand">
     <img src="assets/lipdmiss-logo.png" alt="LiPDMiSS Logo" onerror="this.style.display='none'">
@@ -930,6 +961,7 @@ async function api(action, data) {
 
 async function apiCall(action, data, opts) {
   opts = opts || {};
+  showLoading(opts.loadingMessage);
   try {
     const result = await api(action, data);
     if (!result.success && !opts.silent) {
@@ -939,12 +971,33 @@ async function apiCall(action, data, opts) {
   } catch (err) {
     if (!opts.silent) alert('Connection error: ' + err.message);
     return { success: false, message: err.message };
+  } finally {
+    hideLoading();
   }
 }
 
 // =============================================================================
 // UTILITIES
 // =============================================================================
+
+// =============================================================================
+// GLOBAL LOADING OVERLAY
+// =============================================================================
+let _loadingCount = 0;
+function showLoading(msg) {
+  _loadingCount++;
+  const el = document.getElementById('globalLoadingOverlay');
+  if (!el) return;
+  document.getElementById('gloText').textContent = msg || 'Please wait…';
+  el.classList.add('show');
+}
+function hideLoading() {
+  _loadingCount = Math.max(0, _loadingCount - 1);
+  if (_loadingCount === 0) {
+    const el = document.getElementById('globalLoadingOverlay');
+    if (el) el.classList.remove('show');
+  }
+}
 
 function $(id) { return document.getElementById(id); }
 
@@ -1141,28 +1194,33 @@ async function gatewayLogin() {
 async function downloadSheetPdf(elementId, fileLabel) {
   const el = $(elementId);
   if (!el) return;
-  const { jsPDF } = window.jspdf;
-  const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
-  const imgData = canvas.toDataURL('image/png');
-  const pdf = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const imgHeight = (canvas.height * pageWidth) / canvas.width;
-  let heightLeft = imgHeight;
-  let position = 0;
+  showLoading('Generating PDF…');
+  try {
+    const { jsPDF } = window.jspdf;
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const imgHeight = (canvas.height * pageWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
 
-  pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
-  heightLeft -= pdf.internal.pageSize.getHeight();
-
-  while (heightLeft > 0) {
-    position = heightLeft - imgHeight;
-    pdf.addPage();
     pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
     heightLeft -= pdf.internal.pageSize.getHeight();
-  }
 
-  const student = STATE.currentUser && STATE.currentUser.data;
-  const idPart = student ? student.id : 'LiPDMiSS';
-  pdf.save(`${fileLabel}-${idPart}.pdf`);
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
+      heightLeft -= pdf.internal.pageSize.getHeight();
+    }
+
+    const student = STATE.currentUser && STATE.currentUser.data;
+    const idPart = student ? student.id : 'LiPDMiSS';
+    pdf.save(`${fileLabel}-${idPart}.pdf`);
+  } finally {
+    hideLoading();
+  }
 }
 
 // =============================================================================
@@ -1696,7 +1754,7 @@ function editStudent(id) {
 
 async function deleteStudent(id) {
   if (!confirm(`Delete student ${id} and all their records? This cannot be undone.`)) return;
-  const result = await apiCall('deleteStudent', { id: id });
+  const result = await apiCall('deleteStudent', { id: id }, { loadingMessage: 'Deleting student…' });
   if (result.success) {
     await loadStudents();
     renderStudentList();
