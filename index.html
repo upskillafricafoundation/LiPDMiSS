@@ -833,42 +833,47 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
        can each be downloaded as their own PDF, stamped with the student's
        name, ID, and photo.
        ========================================================================= -->
+    <!-- STUDENT — DASHBOARD / PROFILE (own page) -->
   <section id="student" class="page">
     <div class="toolbar">
       <button onclick="logout()">⌂ Home / Logout</button>
       <div class="dashActions" id="studentGreetingBox"></div>
     </div>
     <div class="statCardsRow" id="studentStatCards"></div>
-     
-    <!-- SHEET 1 — Personal / Academic Details -->
     <div class="sheet">
       <div class="pdfActions">
         <button class="light" onclick="downloadSheetPdf('personalPrintable','Personal-Details')">⬇ Download Personal Details (PDF)</button>
       </div>
       <div id="personalPrintable"></div>
     </div>
+  </section>
 
-    <!-- SHEET 2 — Grade Sheet (collapsible, admin-lockable) -->
-    <details class="collapsible" id="gradeCollapsible" open>
-      <summary>📊 Grade Sheet <span class="collapsibleHint">(tap to expand / collapse)</span></summary>
-      <div class="collapsibleBody">
-        <div class="pdfActions">
-          <button id="gradePdfBtn" onclick="downloadSheetPdf('gradeSheetPrintable','Grade-Sheet')">⬇ Download Grade Sheet (PDF)</button>
-        </div>
-        <div id="gradeSheetPrintable"></div>
+  <!-- STUDENT — GRADE SHEET ONLY (own page) -->
+  <section id="studentGrades" class="page">
+    <div class="toolbar">
+      <button onclick="show('student')">← Back to Dashboard</button>
+      <h2>📊 Grade Sheet</h2>
+    </div>
+    <div class="sheet">
+      <div class="pdfActions">
+        <button id="gradePdfBtn" onclick="downloadSheetPdf('gradeSheetPrintable','Grade-Sheet')">⬇ Download Grade Sheet (PDF)</button>
       </div>
-    </details>
+      <div id="gradeSheetPrintable"></div>
+    </div>
+  </section>
 
-    <!-- SHEET 3 — Payment Record (collapsible) -->
-    <details class="collapsible" id="financeCollapsible">
-      <summary>💳 Payment Record <span class="collapsibleHint">(tap to expand / collapse)</span></summary>
-      <div class="collapsibleBody">
-        <div class="pdfActions">
-          <button onclick="downloadSheetPdf('paymentPrintable','Payment-Record')">⬇ Download Payment Record (PDF)</button>
-        </div>
-        <div id="paymentPrintable"></div>
+  <!-- STUDENT — PAYMENT RECORD ONLY (own page) -->
+  <section id="studentFinance" class="page">
+    <div class="toolbar">
+      <button onclick="show('student')">← Back to Dashboard</button>
+      <h2>💳 Payment Record</h2>
+    </div>
+    <div class="sheet">
+      <div class="pdfActions">
+        <button onclick="downloadSheetPdf('paymentPrintable','Payment-Record')">⬇ Download Payment Record (PDF)</button>
       </div>
-    </details>
+      <div id="paymentPrintable"></div>
+    </div>
   </section>
 
   <!-- =========================================================================
@@ -1538,10 +1543,11 @@ function renderPersonalSheet(s) {
     <div class="sheet" style="margin:0;">
       <div class="profileTopBar">
         <div class="profileTitleGroup">🎓 Student Info <span class="sep">|</span> Profile</div>
-        <div class="profileTabs">
+        
+          <div class="profileTabs">
           <button onclick="jumpToGuardian()">Parent</button>
-          <button onclick="jumpToSection('gradeCollapsible')">Grades</button>
-          <button onclick="jumpToSection('financeCollapsible')">Finance</button>
+          <button onclick="show('studentGrades')">Grades</button>
+          <button onclick="show('studentFinance')">Finance</button>
           <button onclick="jumpToTeachersList()">Teachers</button>
         </div>
       </div>
@@ -1576,10 +1582,6 @@ function renderPersonalSheet(s) {
     </div>`;
 }
 
-function jumpToSection(id) {
-  const el = $(id);
-  if (el) { el.open = true; el.scrollIntoView({ behavior: 'smooth' }); }
-}
 function jumpToGuardian() {
   const el = $('pslGuardianRow');
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2264,10 +2266,10 @@ const SIDEBAR_CONFIG = {
     { icon:'📊', label:'Dashboard', action:() => show('teacher') },
     { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }
   ],
-  student: [
-    { icon:'📊', label:'Dashboard', action:() => { show('student'); } },
-    { icon:'📝', label:'Grade Sheet', action:() => { show('student'); const el = $('gradeCollapsible'); el.open = true; el.scrollIntoView({behavior:'smooth'}); } },
-    { icon:'💳', label:'Payment Record', action:() => { show('student'); const el = $('financeCollapsible'); el.open = true; el.scrollIntoView({behavior:'smooth'}); } }
+  s  student: [
+    { icon:'📊', label:'Dashboard', action:() => show('student') },
+    { icon:'📝', label:'Grade Sheet', action:() => show('studentGrades') },
+    { icon:'💳', label:'Payment Record', action:() => show('studentFinance') }
   ]
 };
 
