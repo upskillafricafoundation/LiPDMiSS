@@ -841,9 +841,10 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
     </div>
     <div class="statCardsRow" id="studentStatCards"></div>
     <div class="sheet">
-      <div class="pdfActions">
-        <button class="light" onclick="downloadSheetPdf('personalPrintable','Personal-Details')">⬇ Download Personal Details (PDF)</button>
-      </div>
+     <div class="pdfActions">
+  <button class="light" onclick="printSheet('personalPrintable')">🖨️ Print</button>
+  <button class="light" onclick="downloadSheetPdf('personalPrintable','Personal-Details')">⬇ Download</button>
+</div>
       <div id="personalPrintable"></div>
     </div>
   </section>
@@ -856,8 +857,9 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
     </div>
     <div class="sheet">
       <div class="pdfActions">
-        <button id="gradePdfBtn" onclick="downloadSheetPdf('gradeSheetPrintable','Grade-Sheet')">⬇ Download Grade Sheet (PDF)</button>
-      </div>
+  <button id="gradePrintBtn" class="light" onclick="printSheet('gradeSheetPrintable')">🖨️ Print</button>
+  <button id="gradePdfBtn" onclick="downloadSheetPdf('gradeSheetPrintable','Grade-Sheet')">⬇ Download</button>
+</div>
       <div id="gradeSheetPrintable"></div>
     </div>
   </section>
@@ -870,8 +872,9 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
     </div>
     <div class="sheet">
       <div class="pdfActions">
-        <button onclick="downloadSheetPdf('paymentPrintable','Payment-Record')">⬇ Download Payment Record (PDF)</button>
-      </div>
+  <button class="light" onclick="printSheet('paymentPrintable')">🖨️ Print</button>
+  <button onclick="downloadSheetPdf('paymentPrintable','Payment-Record')">⬇ Download</button>
+</div>
       <div id="paymentPrintable"></div>
     </div>
   </section>
@@ -1500,6 +1503,21 @@ async function downloadSheetPdf(elementId, fileLabel) {
   }
 }
 
+   function printSheet(elementId) {
+  const el = $(elementId);
+  if (!el) return;
+  const styles = Array.from(document.querySelectorAll('style')).map(s => s.outerHTML).join('');
+  const printWin = window.open('', '_blank');
+  printWin.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Print Preview</title>${styles}
+    <style>body{background:#fff;margin:0;padding:20px;}</style>
+  </head><body>${el.outerHTML}</body></html>`);
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => {
+    printWin.print();
+  }, 400);
+}
+   
 async function enterStudentPortal() {
   const s = STATE.currentUser.data;
   const tRes = await apiCall('getTeachers', {}, { silent: true });
@@ -1596,17 +1614,14 @@ function renderGradeSheet(s) {
   const wrap = $('gradeSheetPrintable');
   const pdfBtn = $('gradePdfBtn');
 
-  if (s.gradeSheetLocked) {
-    wrap.innerHTML = `
-      <div class="rcTemplate">
-        <h1>Student Report Card</h1>
-        <p class="rcSubtitle">${esc(APP_CONFIG.SCHOOL_NAME)}</p>
-        <div class="lockedNotice">🔒 This grade sheet has been locked by the school administration and is currently unavailable for viewing.</div>
-      </div>`;
+    if (s.gradeSheetLocked) {
+    wrap.innerHTML = `...`;
     if (pdfBtn) pdfBtn.disabled = true;
+    if ($('gradePrintBtn')) $('gradePrintBtn').disabled = true;
     return;
   }
   if (pdfBtn) pdfBtn.disabled = false;
+  if ($('gradePrintBtn')) $('gradePrintBtn').disabled = false;
 
   const year = s.academicYear;
   const subs = studentSubjectsForYear(s, year);
