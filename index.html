@@ -550,6 +550,34 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 .ovCardNum { font-size:32px; }
 .ovCard { padding:22px 24px; }
 .ovCardBtn { padding:8px 20px; border-radius:24px; font-weight:800; }
+
+   /* ===================== PLAIN A4 DOCUMENT SHEETS (grade & payment) ===================== */
+.a4Sheet {
+  background:#fff; max-width:800px; margin:0 auto; padding:36px 42px;
+  border:1px solid #cbd5e1; font-family:Arial, "Segoe UI", sans-serif; color:#111;
+}
+.a4Header { text-align:center; border-bottom:2px solid #111; padding-bottom:12px; margin-bottom:20px; }
+.a4Header .a4School { font-size:16px; font-weight:800; margin:0; text-transform:uppercase; letter-spacing:0.5px; }
+.a4Header .a4Motto { font-size:10.5px; color:#555; margin:2px 0 8px; }
+.a4Header .a4DocTitle { font-size:14px; font-weight:700; text-decoration:underline; margin:6px 0 0; }
+
+.a4MetaTable { width:100%; border-collapse:collapse; margin-bottom:22px; font-size:12.5px; }
+.a4MetaTable td { border:1px solid #999; padding:6px 10px; }
+.a4MetaTable td.a4Label { background:#f2f2f2; font-weight:700; width:150px; }
+
+.a4Table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:22px; }
+.a4Table th, .a4Table td { border:1px solid #999; padding:6px 7px; text-align:center; }
+.a4Table th { background:#e8e8e8; font-weight:700; font-size:10.5px; text-transform:uppercase; }
+.a4Table td.a4Left { text-align:left; font-weight:600; }
+
+.a4SummaryTable { width:100%; border-collapse:collapse; font-size:12.5px; margin-bottom:22px; }
+.a4SummaryTable td { border:1px solid #999; padding:8px 10px; }
+.a4SummaryTable td.a4Label { background:#f2f2f2; font-weight:700; width:220px; }
+.a4SummaryTable td.a4Fail { color:#b91c1c; font-weight:800; }
+
+.a4Footer { text-align:center; font-size:10px; color:#666; border-top:1px solid #ccc; padding-top:8px; margin-top:8px; }
+.a4SignRow { display:flex; justify-content:space-between; margin-top:40px; font-size:11px; }
+.a4SignRow div { width:45%; border-top:1px solid #111; text-align:center; padding-top:4px; }
 </style>
 </head>
 
@@ -1542,8 +1570,14 @@ function renderGradeSheet(s) {
 
   if (s.gradeSheetLocked) {
     wrap.innerHTML = `
-      ${studentHeaderHtml('GRADE SHEET', s)}
-      <div class="lockedNotice">🔒 This grade sheet has been locked by the school administration and is currently unavailable for viewing.</div>`;
+      <div class="a4Sheet">
+        <div class="a4Header">
+          <p class="a4School">${esc(APP_CONFIG.SCHOOL_NAME)}</p>
+          <p class="a4Motto">${esc(APP_CONFIG.MOTTO)}</p>
+          <p class="a4DocTitle">STUDENT GRADE SHEET</p>
+        </div>
+        <div class="lockedNotice">🔒 This grade sheet has been locked by the school administration and is currently unavailable for viewing.</div>
+      </div>`;
     if (pdfBtn) pdfBtn.disabled = true;
     return;
   }
@@ -1555,52 +1589,37 @@ function renderGradeSheet(s) {
   const yearlyAvg = studentYearlyAverage(s, year);
   const overall = gradeFor(yearlyAvg);
 
-  // Homeroom/class teacher: first teacher (if any loaded) assigned to this class
-  const classTeacher = (STATE.teachers || []).find(t =>
-    (t.assignments || []).some(a => String(a.class).toLowerCase() === String(s.className).toLowerCase())
-  );
-
   const rows = subs.map(sub => {
     const sem1 = avgOf([sub.p1, sub.p2, sub.p3, sub.exam1]);
     const sem2 = avgOf([sub.p4, sub.p5, sub.p6, sub.exam2]);
     const yr = (sem1 + sem2) / 2;
     const g = gradeFor(yr);
     return `<tr>
-      <td class="subject">${esc(sub.subject)}</td>
+      <td class="a4Left">${esc(sub.subject)}</td>
       <td>${sub.p1 ?? '-'}</td><td>${sub.p2 ?? '-'}</td><td>${sub.p3 ?? '-'}</td><td>${sub.exam1 ?? '-'}</td>
-      <td><b>${sem1.toFixed(1)}</b></td>
+      <td>${sem1.toFixed(1)}</td>
       <td>${sub.p4 ?? '-'}</td><td>${sub.p5 ?? '-'}</td><td>${sub.p6 ?? '-'}</td><td>${sub.exam2 ?? '-'}</td>
-      <td><b>${sem2.toFixed(1)}</b></td>
-      <td><b>${yr.toFixed(1)}</b></td>
+      <td>${sem2.toFixed(1)}</td>
+      <td>${yr.toFixed(1)}</td>
       <td>${g.grade}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="13" class="muted">No subject scores recorded yet for ${esc(year)}.</td></tr>`;
 
   wrap.innerHTML = `
-    <div class="reportCard">
-      <div class="rcTitleBlock">
-        <h1>STUDENT REPORT CARD</h1>
-        <p>${esc(APP_CONFIG.SCHOOL_NAME)} • ${esc(APP_CONFIG.MOTTO)}</p>
+    <div class="a4Sheet">
+      <div class="a4Header">
+        <p class="a4School">${esc(APP_CONFIG.SCHOOL_NAME)}</p>
+        <p class="a4Motto">${esc(APP_CONFIG.MOTTO)}</p>
+        <p class="a4DocTitle">STUDENT GRADE SHEET</p>
       </div>
-      <div class="rcProfileRow">
-        ${s.photo
-          ? `<img class="rcProfilePhoto" src="${esc(s.photo)}" onerror="this.outerHTML='<div class=&quot;rcProfilePhoto placeholderPhoto&quot;>👤</div>'">`
-          : `<div class="rcProfilePhoto placeholderPhoto">👤</div>`}
-        <div>
-          <div style="font-weight:900;font-size:17px;color:#082f50;">${esc(s.name)}</div>
-          <div class="muted">${esc(s.id)} • ${esc(s.className)}</div>
-        </div>
-      </div>
-      <div class="rcTopGrid">
-        <div><small class="muted">NAME</small><br><b>${esc(s.name)}</b></div>
-        <div><small class="muted">SCHOOL YEAR</small><br><b>${esc(s.academicYear)}</b></div>
-        <div><small class="muted">GRADE / CLASS</small><br><b>${esc(s.className)}</b></div>
-        <div><small class="muted">TERM</small><br><b>Full Academic Year</b></div>
-        <div><small class="muted">CLASS TEACHER</small><br><b>${classTeacher ? esc(classTeacher.name) : '—'}</b></div>
-        <div><small class="muted">DATE</small><br><b>${new Date().toLocaleDateString()}</b></div>
-      </div>
+
+      <table class="a4MetaTable">
+        <tr><td class="a4Label">Full Name</td><td>${esc(s.name)}</td><td class="a4Label">Student ID</td><td>${esc(s.id)}</td></tr>
+        <tr><td class="a4Label">Class / Grade</td><td>${esc(s.className)}</td><td class="a4Label">Academic Year</td><td>${esc(s.academicYear)}</td></tr>
+      </table>
+
       <div class="tableWrap">
-        <table class="rcSubjectTable">
+        <table class="a4Table">
           <thead><tr>
             <th>Subject</th><th>1st PD</th><th>2nd PD</th><th>3rd PD</th><th>1st Exam</th><th>Sem 1</th>
             <th>4th PD</th><th>5th PD</th><th>6th PD</th><th>2nd Exam</th><th>Sem 2</th><th>Year Avg</th><th>Grade</th>
@@ -1608,16 +1627,20 @@ function renderGradeSheet(s) {
           <tbody>${rows}</tbody>
         </table>
       </div>
-      <div class="rcBottomGrid">
-        <div><small>Yearly Average</small><b>${yearlyAvg.toFixed(1)}</b></div>
-        <div><small>Overall Grade</small><b class="${overall.grade === 'F' ? 'fail' : ''}">${overall.grade}</b></div>
-        <div><small>Remark</small><b class="${overall.remark === 'FAILURE' ? 'fail' : ''}">${overall.remark}</b></div>
-        <div><small>Class Position</small><b>${pos.position} / ${pos.of}</b></div>
+
+      <table class="a4SummaryTable">
+        <tr><td class="a4Label">Yearly Average</td><td>${yearlyAvg.toFixed(1)}</td></tr>
+        <tr><td class="a4Label">Overall Grade</td><td class="${overall.grade === 'F' ? 'a4Fail' : ''}">${overall.grade}</td></tr>
+        <tr><td class="a4Label">Remark</td><td class="${overall.remark === 'FAILURE' ? 'a4Fail' : ''}">${overall.remark}</td></tr>
+        <tr><td class="a4Label">Class Position</td><td>${pos.position} of ${pos.of}</td></tr>
+      </table>
+
+      <div class="a4SignRow">
+        <div>Class Teacher's Signature</div>
+        <div>Principal's Signature</div>
       </div>
-      <div class="rcFooter">
-        <span>Generated by LiPDMiSS Student Portal • ${new Date().toLocaleDateString()}</span>
-        <span class="rcFooterLogoBox">LiPDMiSS</span>
-      </div>
+
+      <div class="a4Footer">Generated ${new Date().toLocaleDateString()} • LiPDMiSS Student Portal</div>
     </div>`;
 }
 
@@ -1628,22 +1651,40 @@ function renderPaymentSheet(s) {
   const balance = Math.max(0, toNum(f.tuitionTotal) - paidSum);
 
   $('paymentPrintable').innerHTML = `
-    ${studentHeaderHtml('PAYMENT RECORD', s)}
-    <div class="paymentPanel">
-      <div class="paymentGrid">
-        <div><span>Registration Fee</span><b>${formatMoney(f.registrationFee, f.currency)}</b><small class="${f.registrationPaid ? 'pass' : 'fail'}">${f.registrationPaid ? 'PAID' : 'UNPAID'}</small></div>
-        <div><span>Registration Date</span><b>${esc(f.registrationDate) || '—'}</b></div>
-        <div><span>Tuition Total</span><b>${formatMoney(f.tuitionTotal, f.currency)}</b></div>
-        <div><span>Balance Remaining</span><b class="${balance > 0 ? 'fail' : 'pass'}">${formatMoney(balance, f.currency)}</b></div>
+    <div class="a4Sheet">
+      <div class="a4Header">
+        <p class="a4School">${esc(APP_CONFIG.SCHOOL_NAME)}</p>
+        <p class="a4Motto">${esc(APP_CONFIG.MOTTO)}</p>
+        <p class="a4DocTitle">PAYMENT RECORD</p>
       </div>
-      <h4>Installment Breakdown</h4>
-      <div class="installmentView">
-        <div><span>1st Installment</span><b>${formatMoney(installments[0], f.currency)}</b></div>
-        <div><span>2nd Installment</span><b>${formatMoney(installments[1], f.currency)}</b></div>
-        <div><span>3rd Installment</span><b>${formatMoney(installments[2], f.currency)}</b></div>
-        <div><span>4th Installment</span><b>${formatMoney(installments[3], f.currency)}</b></div>
+
+      <table class="a4MetaTable">
+        <tr><td class="a4Label">Full Name</td><td>${esc(s.name)}</td><td class="a4Label">Student ID</td><td>${esc(s.id)}</td></tr>
+        <tr><td class="a4Label">Class / Grade</td><td>${esc(s.className)}</td><td class="a4Label">Academic Year</td><td>${esc(s.academicYear)}</td></tr>
+      </table>
+
+      <table class="a4SummaryTable">
+        <tr><td class="a4Label">Registration Fee</td><td>${formatMoney(f.registrationFee, f.currency)}</td></tr>
+        <tr><td class="a4Label">Registration Status</td><td class="${f.registrationPaid ? '' : 'a4Fail'}">${f.registrationPaid ? 'PAID' : 'UNPAID'}</td></tr>
+        <tr><td class="a4Label">Registration Date</td><td>${esc(f.registrationDate) || '—'}</td></tr>
+        <tr><td class="a4Label">Tuition Total</td><td>${formatMoney(f.tuitionTotal, f.currency)}</td></tr>
+        <tr><td class="a4Label">1st Installment</td><td>${formatMoney(installments[0], f.currency)}</td></tr>
+        <tr><td class="a4Label">2nd Installment</td><td>${formatMoney(installments[1], f.currency)}</td></tr>
+        <tr><td class="a4Label">3rd Installment</td><td>${formatMoney(installments[2], f.currency)}</td></tr>
+        <tr><td class="a4Label">4th Installment</td><td>${formatMoney(installments[3], f.currency)}</td></tr>
+        <tr><td class="a4Label">Other Payments</td><td>${formatMoney(f.otherPayments, f.currency)}</td></tr>
+        <tr><td class="a4Label">Total Paid</td><td>${formatMoney(paidSum, f.currency)}</td></tr>
+        <tr><td class="a4Label">Balance Remaining</td><td class="${balance > 0 ? 'a4Fail' : ''}">${formatMoney(balance, f.currency)}</td></tr>
+      </table>
+
+      <p class="muted" style="font-size:11px;">Payments are record-only; no payment is processed online on this website.</p>
+
+      <div class="a4SignRow">
+        <div>Registrar's Signature</div>
+        <div>Date</div>
       </div>
-      <p class="muted" style="margin-top:12px;">Total Paid to Date: <b>${formatMoney(paidSum, f.currency)}</b>. Payments are record-only; no payment is processed online on this website.</p>
+
+      <div class="a4Footer">Generated ${new Date().toLocaleDateString()} • LiPDMiSS Student Portal</div>
     </div>`;
 }
 
