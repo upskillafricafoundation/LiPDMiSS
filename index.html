@@ -384,6 +384,61 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 }
 .gloText { color: #fff; font-weight: 800; font-size: 14px; letter-spacing: 0.5px; }
 @keyframes gloSpin { to { transform: rotate(360deg); } }
+
+   /* ===================== APP SHELL (SIDEBAR DASHBOARD LAYOUT) ===================== */
+.appShell { display: none; min-height: 100vh; }
+.appShell.show { display: flex; }
+.sidebar {
+  width: 230px; flex: 0 0 230px; background: linear-gradient(180deg,#0b2745,#103db8);
+  color: #fff; display: flex; flex-direction: column; padding: 20px 0;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.sidebarBrand { display:flex; align-items:center; gap:10px; padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.15); margin-bottom: 12px; }
+.sidebarBrand img { width:34px; height:34px; border-radius:8px; background:#fff; padding:2px; }
+.sidebarBrand b { font-size:16px; }
+.sidebarRole { font-size: 10px; letter-spacing: 1px; color: #ffd000; font-weight: 800; padding: 0 20px 14px; text-transform: uppercase; }
+.sideNav { list-style:none; margin:0; padding:0; flex:1; }
+.sideNav li { margin: 2px 10px; }
+.sideNavBtn {
+  width:100%; display:flex; align-items:center; gap:12px; background:transparent; color: rgba(255,255,255,0.82);
+  border:0; padding: 11px 14px; border-radius:10px; font-weight:700; font-size:13.5px; cursor:pointer; text-align:left;
+}
+.sideNavBtn:hover { background: rgba(255,255,255,0.08); color:#fff; }
+.sideNavBtn.activeNav { background:#fff; color:#0b2745; }
+.sideNavBtn .navIcon { font-size:16px; width:20px; text-align:center; }
+.sidebarFooter { padding: 14px 20px 0; border-top: 1px solid rgba(255,255,255,0.15); margin-top: 10px; }
+.sidebarFooter button { width:100%; }
+
+.shellMain { flex:1; min-width:0; display:flex; flex-direction:column; }
+.topbar { background:#fff; padding: 14px 26px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 10px rgba(0,0,0,0.06); position: sticky; top:0; z-index: 10; }
+.topbarTitle { font-weight:800; color:#082f50; font-size:17px; }
+.topbarUser { display:flex; align-items:center; gap:10px; }
+.topbarUser .userIcon { width:38px; height:38px; font-size:16px; }
+.topbarUserText { text-align:right; line-height:1.2; }
+.topbarUserText b { font-size:13px; color:#082f50; display:block; }
+.topbarUserText small { color:#64748b; font-size:11px; }
+.shellContent { padding: 24px 28px; flex:1; }
+.shellContent .page { max-width: none; margin: 0; padding: 0; }
+
+.statCardsRow { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:22px; }
+.statCard { background:#fff; border-radius:14px; padding:18px 20px; box-shadow:0 6px 20px rgba(0,0,0,0.06); display:flex; flex-direction:column; gap:10px; border-top:4px solid #103db8; }
+.statCardTop { display:flex; align-items:center; gap:12px; }
+.statCardIcon { width:46px; height:46px; border-radius:50%; background:#eff6ff; display:grid; place-items:center; font-size:22px; }
+.statCardNum { font-size:26px; font-weight:900; color:#082f50; }
+.statCardLabel { font-size:12px; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+.statCard button { margin-top:4px; }
+
+#topHeader.hidden { display: none !important; }
+.tabs { display: none; } /* sidebar now handles this navigation */
+
+@media (max-width: 900px) {
+  .appShell.show { flex-direction: column; }
+  .sidebar { width:100%; flex:none; height:auto; position:relative; flex-direction:row; overflow-x:auto; padding: 12px; }
+  .sidebarBrand, .sidebarRole, .sidebarFooter { display:none; }
+  .sideNav { display:flex; flex:none; }
+  .sideNav li { margin: 0 4px; }
+  .sideNavBtn { white-space:nowrap; padding: 8px 12px; }
+}
 </style>
 </head>
 
@@ -392,7 +447,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
   <div class="gloSpinner"></div>
   <div class="gloText" id="gloText">Please wait…</div>
 </div>
-<header>
+<header id="topHeader">
   <div class="brand">
     <img src="assets/lipdmiss-logo.png" alt="LiPDMiSS Logo" onerror="this.style.display='none'">
     <div>
@@ -513,7 +568,34 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         </div>
       </div>
     </div>
-  </section>
+   </section>
+  </main>
+
+  <!-- ============================ APP SHELL (sidebar dashboard) ============================ -->
+  <div id="appShell" class="appShell">
+    <aside class="sidebar">
+      <div class="sidebarBrand">
+        <img src="assets/lipdmiss-logo.png" alt="Logo" onerror="this.style.display='none'">
+        <b>LiPDMiSS</b>
+      </div>
+      <div class="sidebarRole" id="sidebarRoleLabel">Portal</div>
+      <ul class="sideNav" id="sideNavList"></ul>
+      <div class="sidebarFooter">
+        <button class="light" onclick="logout()">⎋ Logout</button>
+      </div>
+    </aside>
+    <div class="shellMain">
+      <div class="topbar">
+        <div class="topbarTitle" id="topbarTitle">Dashboard</div>
+        <div class="topbarUser">
+          <div class="topbarUserText"><b id="topbarUserName">—</b><small id="topbarUserRole">—</small></div>
+          <div class="userIcon" id="topbarUserIcon">👤</div>
+        </div>
+      </div>
+      <div class="shellContent">
+
+  <!-- =========================================================================
+       TEACHER DASHBOARD — a teacher may be assigned to multiple classes, each
 
   <!-- =========================================================================
        TEACHER DASHBOARD — a teacher may be assigned to multiple classes, each
@@ -530,7 +612,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         <button class="light" onclick="logout()">Logout</button>
       </div>
     </div>
-
+    <div class="statCardsRow" id="teacherStatCards"></div>
     <div class="box statusBox">
       <h3>📅 Periodic Grading Submission Window (<span id="teacherActiveYear"></span>)</h3>
       <p class="muted">Admin controls which period is currently unlocked. You can add missing grades for open periods. Existing recorded grades are locked to prevent alterations.</p>
@@ -594,7 +676,8 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       <button onclick="logout()">⌂ Home / Logout</button>
       <div class="dashActions" id="studentGreetingBox"></div>
     </div>
-
+    <div class="statCardsRow" id="studentStatCards"></div>
+     
     <!-- SHEET 1 — Personal / Academic Details -->
     <div class="sheet">
       <div class="pdfActions">
@@ -643,6 +726,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         </div>
         <button class="light" onclick="logout()">Logout</button>
       </div>
+           <div class="statCardsRow" id="adminStatCards"></div>
     </div>
 
     <div class="tabs">
@@ -852,8 +936,11 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         </div>
       </div>
     </div>
-  </section>
-</main>
+    </section>
+
+      </div>
+    </div>
+  </div>
 
 <footer>
   <p>© 2026 Liberty Prayer Deliverance Ministries School System (LiPDMiSS) • Student, Teacher &amp; Finance Portal</p>
@@ -1073,6 +1160,10 @@ function show(pageId) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const target = $(pageId);
   if (target) target.classList.add('active');
+
+  const isGateway = pageId === 'gateway';
+  $('topHeader').classList.toggle('hidden', !isGateway);
+  $('appShell').classList.toggle('show', !isGateway);
   window.scrollTo(0, 0);
 }
 
@@ -1234,6 +1325,8 @@ function enterStudentPortal() {
   renderPersonalSheet(s);
   renderGradeSheet(s);
   renderPaymentSheet(s);
+  renderSidebar();
+  renderStudentStatCards();
   show('student');
 }
 
@@ -1398,6 +1491,8 @@ async function enterTeacherPortal() {
   classSelect.innerHTML = classes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
   onTeacherClassChange();
 
+   renderSidebar();
+  renderTeacherStatCards();
   show('teacher');
 }
 
@@ -1498,7 +1593,9 @@ async function enterAdminPortal() {
    resetAssignmentsBuilder();
   addAssignmentRow();
 
-  applyAdminRoleUI();
+    applyAdminRoleUI();
+  renderSidebar();
+  renderAdminStatCards();
   show('admin');
 }
 
@@ -1601,6 +1698,7 @@ function renderStudentList(filterText) {
     const buildFn = isPrincipalUser() ? buildStudentTableHtmlAcademic : buildStudentTableHtmlFinance;
   $('studentList').innerHTML = buildFn(pageItems);
   renderStudentPaginationBar(filtered.length, totalPages);
+  renderAdminStatCards();
 }
 
 function buildStudentTableHtmlFinance(items) {
@@ -1930,6 +2028,126 @@ function isRegistrarUser() {
    function isPrincipalUser() {
   return STATE.currentUser && STATE.currentUser.userType === 'admin' &&
     String((STATE.currentUser.data || {}).role || '').trim().toLowerCase() === 'principal';
+}
+   const SIDEBAR_CONFIG = {
+  principal: [
+    { icon:'📊', label:'Dashboard', action:() => { show('admin'); adminTab('students'); } },
+    { icon:'👨‍🎓', label:'Students', action:() => { show('admin'); adminTab('students'); } },
+    { icon:'👨‍🏫', label:'Teachers', action:() => { show('admin'); adminTab('teachers'); } },
+    { icon:'📚', label:'Subjects', action:() => { show('admin'); adminTab('subjects'); } }
+  ],
+  registrar: [
+    { icon:'📊', label:'Dashboard', action:() => { show('admin'); adminTab('students'); } },
+    { icon:'👨‍🎓', label:'Students', action:() => { show('admin'); adminTab('students'); } }
+  ],
+  teacher: [
+    { icon:'📊', label:'Dashboard', action:() => show('teacher') }
+  ],
+  student: [
+    { icon:'📊', label:'Dashboard', action:() => { show('student'); } },
+    { icon:'📝', label:'Grade Sheet', action:() => { show('student'); const el = $('gradeCollapsible'); el.open = true; el.scrollIntoView({behavior:'smooth'}); } },
+    { icon:'💳', label:'Payment Record', action:() => { show('student'); const el = $('financeCollapsible'); el.open = true; el.scrollIntoView({behavior:'smooth'}); } }
+  ]
+};
+
+function currentPortalRoleKey() {
+  if (!STATE.currentUser) return null;
+  if (STATE.currentUser.userType === 'teacher') return 'teacher';
+  if (STATE.currentUser.userType === 'student') return 'student';
+  if (STATE.currentUser.userType === 'admin') return isPrincipalUser() ? 'principal' : 'registrar';
+  return null;
+}
+
+function renderSidebar() {
+  const key = currentPortalRoleKey();
+  if (!key) return;
+  const items = SIDEBAR_CONFIG[key] || [];
+
+  $('sidebarRoleLabel').textContent = key.charAt(0).toUpperCase() + key.slice(1) + ' Portal';
+  $('sideNavList').innerHTML = items.map((it, idx) => `
+    <li><button class="sideNavBtn" data-nav="${idx}"><span class="navIcon">${it.icon}</span>${esc(it.label)}</button></li>
+  `).join('');
+
+  document.querySelectorAll('#sideNavList .sideNavBtn').forEach((btn, idx) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#sideNavList .sideNavBtn').forEach(b => b.classList.remove('activeNav'));
+      btn.classList.add('activeNav');
+      $('topbarTitle').textContent = items[idx].label;
+      items[idx].action();
+    });
+  });
+  if (items[0]) {
+    document.querySelector('#sideNavList .sideNavBtn').classList.add('activeNav');
+    $('topbarTitle').textContent = items[0].label;
+  }
+
+  const data = STATE.currentUser.data || {};
+  $('topbarUserName').textContent = data.name || data.username || '—';
+  $('topbarUserRole').textContent = key.charAt(0).toUpperCase() + key.slice(1);
+  $('topbarUserIcon').innerHTML = photoTag(data.photo, '');
+}
+   function renderAdminStatCards() {
+  const box = $('adminStatCards');
+  if (!box) return;
+  const studentCount = STATE.students.filter(s => String(s.academicYear) === String(STATE.activeYear)).length;
+
+  let cards = `
+    <div class="statCard">
+      <div class="statCardTop"><div class="statCardIcon">👨‍🎓</div><div><div class="statCardNum">${studentCount}</div><div class="statCardLabel">Students (${esc(STATE.activeYear)})</div></div></div>
+      <button class="light" onclick="adminTab('students')">View Students</button>
+    </div>`;
+
+  if (isPrincipalUser()) {
+    const lockedCount = STATE.students.filter(s => s.gradeLocked).length;
+    cards += `
+    <div class="statCard">
+      <div class="statCardTop"><div class="statCardIcon">👨‍🏫</div><div><div class="statCardNum">${STATE.teachers.length}</div><div class="statCardLabel">Teachers</div></div></div>
+      <button class="light" onclick="adminTab('teachers')">Manage Teachers</button>
+    </div>
+    <div class="statCard">
+      <div class="statCardTop"><div class="statCardIcon">🔒</div><div><div class="statCardNum">${lockedCount}</div><div class="statCardLabel">Locked Grade Sheets</div></div></div>
+      <button class="light" onclick="adminTab('teachers')">Grading Permissions</button>
+    </div>`;
+  } else if (isRegistrarUser()) {
+    const totalBalance = STATE.students
+      .filter(s => String(s.academicYear) === String(STATE.activeYear))
+      .reduce((sum, s) => {
+        const f = s.finance || {};
+        const paid = (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
+        return sum + Math.max(0, toNum(f.tuitionTotal) - paid);
+      }, 0);
+    cards += `
+    <div class="statCard">
+      <div class="statCardTop"><div class="statCardIcon">💳</div><div><div class="statCardNum">${totalBalance.toLocaleString()}</div><div class="statCardLabel">Outstanding Balance</div></div></div>
+    </div>`;
+  }
+  box.innerHTML = cards;
+}
+
+function renderTeacherStatCards() {
+  const box = $('teacherStatCards');
+  if (!box) return;
+  const t = STATE.currentUser.data;
+  const classCount = (t.assignments || []).length;
+  const openPeriods = PERIOD_KEYS.filter(k => STATE.permissions[k]).length;
+  box.innerHTML = `
+    <div class="statCard"><div class="statCardTop"><div class="statCardIcon">🏫</div><div><div class="statCardNum">${classCount}</div><div class="statCardLabel">Assigned Classes</div></div></div></div>
+    <div class="statCard"><div class="statCardTop"><div class="statCardIcon">🔓</div><div><div class="statCardNum">${openPeriods}</div><div class="statCardLabel">Open Grading Periods</div></div></div></div>`;
+}
+
+function renderStudentStatCards() {
+  const box = $('studentStatCards');
+  if (!box) return;
+  const s = STATE.currentUser.data;
+  const subs = studentSubjectsForYear(s, s.academicYear);
+  const avg = studentYearlyAverage(s, s.academicYear);
+  const f = s.finance || {};
+  const paid = (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
+  const balance = Math.max(0, toNum(f.tuitionTotal) - paid);
+  box.innerHTML = `
+    <div class="statCard"><div class="statCardTop"><div class="statCardIcon">📚</div><div><div class="statCardNum">${subs.length}</div><div class="statCardLabel">Subjects</div></div></div></div>
+    <div class="statCard"><div class="statCardTop"><div class="statCardIcon">📈</div><div><div class="statCardNum">${avg.toFixed(1)}</div><div class="statCardLabel">Year Average</div></div></div></div>
+    <div class="statCard"><div class="statCardTop"><div class="statCardIcon">💳</div><div><div class="statCardNum">${formatMoney(balance, f.currency)}</div><div class="statCardLabel">Balance Due</div></div></div></div>`;
 }
 function currentActorRole() {
   return STATE.currentUser && STATE.currentUser.userType === 'admin'
