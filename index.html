@@ -578,6 +578,32 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 .a4Footer { text-align:center; font-size:10px; color:#666; border-top:1px solid #ccc; padding-top:8px; margin-top:8px; }
 .a4SignRow { display:flex; justify-content:space-between; margin-top:40px; font-size:11px; }
 .a4SignRow div { width:45%; border-top:1px solid #111; text-align:center; padding-top:4px; }
+/* ===================== REPORT CARD — EDIT.org style template ===================== */
+.rcTemplate {
+  background:#fdf6d8; max-width:800px; margin:0 auto; padding:36px 40px;
+  border:2px solid #1c1c1c; font-family:Arial, "Segoe UI", sans-serif; color:#1c1c1c;
+}
+.rcTemplate h1 {
+  text-align:center; font-size:34px; font-weight:900; letter-spacing:1px;
+  margin:0 0 4px; text-transform:uppercase; font-family:Georgia, 'Times New Roman', serif;
+}
+.rcTemplate .rcSubtitle { text-align:center; font-size:11px; color:#333; margin:0 0 22px; }
+
+.rcMetaTable { width:100%; border-collapse:collapse; border:2px solid #1c1c1c; margin-bottom:22px; }
+.rcMetaTable td { border:1px solid #1c1c1c; padding:10px 14px; font-size:12.5px; font-weight:700; width:50%; }
+
+.rcGradeTable { width:100%; border-collapse:collapse; margin-bottom:22px; font-size:12px; }
+.rcGradeTable th { background:#1c1c1c; color:#fff; font-weight:800; padding:10px 6px; text-transform:uppercase; font-size:10.5px; letter-spacing:0.4px; }
+.rcGradeTable td { border:1px solid #1c1c1c; padding:9px 6px; text-align:center; font-weight:700; }
+.rcGradeTable td.rcSubjectCell { text-align:left; font-weight:800; }
+.rcGradeTable tr:nth-child(even) td { background:rgba(0,0,0,0.03); }
+
+.rcBottomBoxes { width:100%; border-collapse:collapse; border:2px solid #1c1c1c; margin-bottom:26px; }
+.rcBottomBoxes td { border:1px solid #1c1c1c; padding:12px 14px; font-size:12.5px; font-weight:700; width:50%; }
+
+.rcFooter { display:flex; justify-content:space-between; align-items:flex-end; font-size:11px; }
+.rcFooter .rcFooterLines div { margin-bottom:2px; }
+.rcLogoBox { border:1px dashed #1c1c1c; padding:14px 20px; text-align:center; font-size:11px; font-weight:800; letter-spacing:0.5px; }
 </style>
 </head>
 
@@ -1570,12 +1596,9 @@ function renderGradeSheet(s) {
 
   if (s.gradeSheetLocked) {
     wrap.innerHTML = `
-      <div class="a4Sheet">
-        <div class="a4Header">
-          <p class="a4School">${esc(APP_CONFIG.SCHOOL_NAME)}</p>
-          <p class="a4Motto">${esc(APP_CONFIG.MOTTO)}</p>
-          <p class="a4DocTitle">STUDENT GRADE SHEET</p>
-        </div>
+      <div class="rcTemplate">
+        <h1>Student Report Card</h1>
+        <p class="rcSubtitle">${esc(APP_CONFIG.SCHOOL_NAME)}</p>
         <div class="lockedNotice">🔒 This grade sheet has been locked by the school administration and is currently unavailable for viewing.</div>
       </div>`;
     if (pdfBtn) pdfBtn.disabled = true;
@@ -1585,55 +1608,51 @@ function renderGradeSheet(s) {
 
   const year = s.academicYear;
   const subs = studentSubjectsForYear(s, year);
-  const pos = studentClassPosition(s, year);
-  const yearlyAvg = studentYearlyAverage(s, year);
-  const overall = gradeFor(yearlyAvg);
 
-  const rows = subs.map(sub => {
-    const sem1 = avgOf([sub.p1, sub.p2, sub.p3, sub.exam1]);
-    const sem2 = avgOf([sub.p4, sub.p5, sub.p6, sub.exam2]);
-    const yr = (sem1 + sem2) / 2;
-    const g = gradeFor(yr);
-    return `<tr>
-      <td class="a4Left">${esc(sub.subject)}</td>
+  const classTeacher = (STATE.teachers || []).find(t =>
+    (t.assignments || []).some(a => String(a.class).toLowerCase() === String(s.className).toLowerCase())
+  );
+
+  const rows = subs.map(sub => `
+    <tr>
+      <td class="rcSubjectCell">${esc(sub.subject)}</td>
       <td>${sub.p1 ?? '-'}</td><td>${sub.p2 ?? '-'}</td><td>${sub.p3 ?? '-'}</td><td>${sub.exam1 ?? '-'}</td>
-      <td>${sem1.toFixed(1)}</td>
       <td>${sub.p4 ?? '-'}</td><td>${sub.p5 ?? '-'}</td><td>${sub.p6 ?? '-'}</td><td>${sub.exam2 ?? '-'}</td>
-      <td>${sem2.toFixed(1)}</td>
-      <td>${yr.toFixed(1)}</td>
-      <td>${g.grade}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="13" class="muted">No subject scores recorded yet for ${esc(year)}.</td></tr>`;
+    </tr>`).join('') || `<tr><td colspan="9" class="muted">No subject scores recorded yet for ${esc(year)}.</td></tr>`;
 
   wrap.innerHTML = `
-    <div class="a4Sheet">
-      <div class="a4Header">
-        <p class="a4School">${esc(APP_CONFIG.SCHOOL_NAME)}</p>
-        <p class="a4Motto">${esc(APP_CONFIG.MOTTO)}</p>
-        <p class="a4DocTitle">STUDENT GRADE SHEET</p>
-      </div>
+    <div class="rcTemplate">
+      <h1>Student Report Card</h1>
+      <p class="rcSubtitle">Official grade sheet from ${esc(APP_CONFIG.SCHOOL_NAME)}</p>
 
-      <table class="a4MetaTable">
-        <tr><td class="a4Label">Full Name</td><td>${esc(s.name)}</td><td class="a4Label">Student ID</td><td>${esc(s.id)}</td></tr>
-        <tr><td class="a4Label">Class / Grade</td><td>${esc(s.className)}</td><td class="a4Label">Academic Year</td><td>${esc(s.academicYear)}</td></tr>
+      <table class="rcMetaTable">
+        <tr><td>NAME: ${esc(s.name)}</td><td>SCHOOL YEAR: ${esc(s.academicYear)}</td></tr>
+        <tr><td>GRADE: ${esc(s.className)}</td><td>TERM: Full Academic Year</td></tr>
+        <tr><td>TEACHER: ${classTeacher ? esc(classTeacher.name) : '—'}</td><td>DATE: ${new Date().toLocaleDateString()}</td></tr>
       </table>
 
       <div class="tableWrap">
-        <table class="a4Table">
+        <table class="rcGradeTable">
           <thead><tr>
-            <th>Subject</th><th>1st PD</th><th>2nd PD</th><th>3rd PD</th><th>1st Exam</th><th>Sem 1</th>
-            <th>4th PD</th><th>5th PD</th><th>6th PD</th><th>2nd Exam</th><th>Sem 2</th><th>Year Avg</th><th>Grade</th>
+            <th>Subject</th><th>1st PD</th><th>2nd PD</th><th>3rd PD</th><th>1st Exam</th>
+            <th>4th PD</th><th>5th PD</th><th>6th PD</th><th>2nd Exam</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
 
-     <div class="a4SignRow">
-        <div>Class Teacher's Signature</div>
-        <div>Principal's Signature</div>
-      </div>
+      <table class="rcBottomBoxes">
+        <tr><td>CLASS TEACHER'S REMARK:</td><td>PRINCIPAL'S REMARK:</td></tr>
+        <tr><td>TEACHER'S SIGNATURE:</td><td>PRINCIPAL'S SIGNATURE:</td></tr>
+      </table>
 
-      <div class="a4Footer">Generated ${new Date().toLocaleDateString()} • LiPDMiSS Student Portal</div>
+      <div class="rcFooter">
+        <div class="rcFooterLines">
+          <div>${esc(APP_CONFIG.SCHOOL_NAME)}</div>
+          <div>Student ID: ${esc(s.id)}</div>
+        </div>
+        <div class="rcLogoBox">LiPDMiSS</div>
+      </div>
     </div>`;
 }
 
