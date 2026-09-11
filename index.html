@@ -640,6 +640,11 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 .rcFooter { display:flex; justify-content:space-between; align-items:flex-end; font-size:11px; }
 .rcFooter .rcFooterLines div { margin-bottom:2px; }
 .rcLogoBox { border:1px dashed #1c1c1c; padding:14px 20px; text-align:center; font-size:11px; font-weight:800; letter-spacing:0.5px; }
+
+   .msgBadge {
+  background: #dc2626; color: #fff; font-size: 10px; font-weight: 800;
+  border-radius: 10px; padding: 1px 7px; margin-left: auto;
+}
 </style>
 </head>
 
@@ -1622,7 +1627,12 @@ async function downloadSheetPdf(elementId, fileLabel) {
     printWin.print();
   }, 400);
 }
-   
+async function refreshUnreadMessageCount() {
+  const who = currentInboxIdentity();
+  const res = await apiCall('getMessages', { recipientType: who.type, recipientId: who.id }, { silent: true });
+  const msgs = (res.success && res.messages) || [];
+  STATE.unreadMessageCount = msgs.filter(m => !m.read).length;
+}
 async function enterStudentPortal() {
   const s = STATE.currentUser.data;
   const tRes = await apiCall('getTeachers', {}, { silent: true });
@@ -1868,7 +1878,12 @@ function renderPaymentSheet(s) {
       <div class="a4Footer">Generated ${new Date().toLocaleDateString()} • LiPDMiSS Student Portal</div>
     </div>`;
 }
-
+async function refreshUnreadMessageCount() {
+  const who = currentInboxIdentity();
+  const res = await apiCall('getMessages', { recipientType: who.type, recipientId: who.id }, { silent: true });
+  const msgs = (res.success && res.messages) || [];
+  STATE.unreadMessageCount = msgs.filter(m => !m.read).length;
+}
 async function enterTeacherPortal() {
   const t = STATE.currentUser.data;
   $('teacherGreeting').textContent = `Welcome, ${t.name}`;
@@ -2013,7 +2028,12 @@ async function teacherSaveGrades() {
     renderTeacherGradeTable();
   }
 }
-
+async function refreshUnreadMessageCount() {
+  const who = currentInboxIdentity();
+  const res = await apiCall('getMessages', { recipientType: who.type, recipientId: who.id }, { silent: true });
+  const msgs = (res.success && res.messages) || [];
+  STATE.unreadMessageCount = msgs.filter(m => !m.read).length;
+}
 async function enterAdminPortal() {
   populateAcademicYearSelects();
   $('adminSchoolYear').value = STATE.activeYear;
@@ -2522,7 +2542,12 @@ function currentPortalRoleKey() {
   if (STATE.currentUser.userType === 'admin') return isPrincipalUser() ? 'principal' : 'registrar';
   return null;
 }
-
+async function refreshUnreadMessageCount() {
+  const who = currentInboxIdentity();
+  const res = await apiCall('getMessages', { recipientType: who.type, recipientId: who.id }, { silent: true });
+  const msgs = (res.success && res.messages) || [];
+  STATE.unreadMessageCount = msgs.filter(m => !m.read).length;
+}
 function renderSidebar() {
   const key = currentPortalRoleKey();
   if (!key) return;
@@ -2530,7 +2555,11 @@ function renderSidebar() {
 
   $('sidebarRoleLabel').textContent = key.charAt(0).toUpperCase() + key.slice(1) + ' Portal';
   $('sideNavList').innerHTML = items.map((it, idx) => `
-    <li><button class="sideNavBtn" data-nav="${idx}"><span class="navIcon">${it.icon}</span>${esc(it.label)}</button></li>
+    <li><button class="sideNavBtn" data-nav="${idx}">
+      <span class="navIcon">${it.icon}</span>${esc(it.label)}
+      ${it.label === 'Messages' && STATE.unreadMessageCount > 0
+        ? `<span id="msgNavBadge" class="msgBadge">${STATE.unreadMessageCount}</span>` : ''}
+    </button></li>
   `).join('');
 
   document.querySelectorAll('#sideNavList .sideNavBtn').forEach((btn, idx) => {
