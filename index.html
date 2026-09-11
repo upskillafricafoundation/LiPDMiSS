@@ -1403,9 +1403,9 @@ async function gatewayLogin() {
   } else if (userType === 'teacher') {
     STATE.currentUser = { userType: 'teacher', data: result.teacher };
     await enterTeacherPortal();
-  } else {
+     } else {
     STATE.currentUser = { userType: 'student', data: result.student };
-    enterStudentPortal();
+    await enterStudentPortal();
   }
 }
 
@@ -1452,10 +1452,7 @@ async function enterStudentPortal() {
   renderSidebar();
   renderStudentStatCards();
   show('student');
-} else {
-    STATE.currentUser = { userType: 'student', data: result.student };
-    enterStudentPortal();
-  }
+}
 
 function studentHeaderHtml(sheetLabel, s) {
   return `
