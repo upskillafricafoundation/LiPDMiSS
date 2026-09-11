@@ -1628,14 +1628,7 @@ function renderGradeSheet(s) {
         </table>
       </div>
 
-      <table class="a4SummaryTable">
-        <tr><td class="a4Label">Yearly Average</td><td>${yearlyAvg.toFixed(1)}</td></tr>
-        <tr><td class="a4Label">Overall Grade</td><td class="${overall.grade === 'F' ? 'a4Fail' : ''}">${overall.grade}</td></tr>
-        <tr><td class="a4Label">Remark</td><td class="${overall.remark === 'FAILURE' ? 'a4Fail' : ''}">${overall.remark}</td></tr>
-        <tr><td class="a4Label">Class Position</td><td>${pos.position} of ${pos.of}</td></tr>
-      </table>
-
-      <div class="a4SignRow">
+     <div class="a4SignRow">
         <div>Class Teacher's Signature</div>
         <div>Principal's Signature</div>
       </div>
