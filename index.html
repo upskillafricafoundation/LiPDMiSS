@@ -2057,22 +2057,23 @@ function isRegistrarUser() {
   return STATE.currentUser && STATE.currentUser.userType === 'admin' &&
     String((STATE.currentUser.data || {}).role || '').trim().toLowerCase() === 'principal';
 }
-   const SIDEBAR_CONFIG = {
+   
+const SIDEBAR_CONFIG = {
   principal: [
     { icon:'📊', label:'Dashboard', action:() => renderAdminOverview() },
     { icon:'👨‍🎓', label:'Students', action:() => { show('admin'); adminTab('students'); } },
     { icon:'👨‍🏫', label:'Teachers', action:() => { show('admin'); adminTab('teachers'); } },
-    { icon:'📚', label:'Subjects', action:() => { show('admin'); adminTab('subjects'); } }
-    { icon:'✉️', label:'Messages', action:() => renderMessagesPage() },
+    { icon:'📚', label:'Subjects', action:() => { show('admin'); adminTab('subjects'); } },
+    { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }
   ],
   registrar: [
     { icon:'📊', label:'Dashboard', action:() => renderAdminOverview() },
-    { icon:'👨‍🎓', label:'Students', action:() => { show('admin'); adminTab('students'); } }
-   { icon:'✉️', label:'Messages', action:() => renderMessagesPage() },
+    { icon:'👨‍🎓', label:'Students', action:() => { show('admin'); adminTab('students'); } },
+    { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }
   ],
   teacher: [
-    { icon:'📊', label:'Dashboard', action:() => show('teacher') }
-   { icon:'✉️', label:'Messages', action:() => renderMessagesPage() },
+    { icon:'📊', label:'Dashboard', action:() => show('teacher') },
+    { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }
   ],
   student: [
     { icon:'📊', label:'Dashboard', action:() => { show('student'); } },
