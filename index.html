@@ -391,7 +391,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 .sidebar {
   width: 230px; flex: 0 0 230px; background: linear-gradient(180deg,#0b2745,#103db8);
   color: #fff; display: flex; flex-direction: column; padding: 20px 0;
-  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; z-index: 40;
 }
 .sidebarBrand { display:flex; align-items:center; gap:10px; padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.15); margin-bottom: 12px; }
 .sidebarBrand img { width:34px; height:34px; border-radius:8px; background:#fff; padding:2px; }
@@ -409,8 +409,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 .sidebarFooter { padding: 14px 20px 0; border-top: 1px solid rgba(255,255,255,0.15); margin-top: 10px; }
 .sidebarFooter button { width:100%; }
 
-.shellMain { flex:1; min-width:0; display:flex; flex-direction:column; }
-.topbar { background:#fff; padding: 14px 26px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 10px rgba(0,0,0,0.06); position: sticky; top:0; z-index: 10; }
+.shellMain { flex:1; min-width:0; display:flex; flex-direction:column; margin-left: 230px; }.topbar { background:#fff; padding: 14px 26px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 10px rgba(0,0,0,0.06); position: sticky; top:0; z-index: 10; }
 .topbarTitle { font-weight:800; color:#082f50; font-size:17px; }
 .topbarUser { display:flex; align-items:center; gap:10px; }
 .topbarUser .userIcon { width:38px; height:38px; font-size:16px; }
@@ -477,11 +476,17 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 
 @media (max-width: 900px) {
   .appShell.show { flex-direction: column; }
-  .sidebar { width:100%; flex:none; height:auto; position:relative; flex-direction:row; overflow-x:auto; padding: 12px; }
+  .sidebar {
+    width:100%; flex:none; height:auto; max-height: 64px;
+    position:fixed; top:0; left:0; right:0; flex-direction:row;
+    overflow-x:auto; overflow-y:hidden; padding: 8px 12px; z-index: 40;
+  }
   .sidebarBrand, .sidebarRole, .sidebarFooter { display:none; }
   .sideNav { display:flex; flex:none; }
   .sideNav li { margin: 0 4px; }
   .sideNavBtn { white-space:nowrap; padding: 8px 12px; }
+  .shellMain { margin-left: 0; margin-top: 64px; }
+  .topbar { top: 64px; }
 }
 </style>
 </head>
@@ -504,7 +509,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
   </nav>
 </header>
 
-<main>
+<main id="mainWrap">
   <!-- =========================================================================
        SINGLE GATEWAY — the one and only first page. Everyone (student,
        teacher, admin) logs in from right here; there are no separate portal
@@ -801,7 +806,17 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 
     <!-- STUDENTS TAB -->
     <div id="studentsTab" class="hidden">
-      <div class="box addStudentBox">
+           <div class="directoryHeader">
+        <h3>📋 Enrolled Students (<span id="studentCount">0</span>)</h3>
+        <label class="studentSearch">
+          <span>Search Student:</span>
+          <input id="studentSearch" type="search" placeholder="Search by name, ID, or class..." oninput="searchStudents(this.value)">
+        </label>
+      </div>
+        <div id="studentList"></div>
+      <div id="studentPaginationBar" class="paginationBar"></div>
+    </div>
+ <div class="box addStudentBox">
         <h3>➕ Add New Student Record</h3>
         <div class="grid">
           <label>Student ID *
@@ -844,16 +859,6 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         <button onclick="addStudent()">Add Student Record</button>
       </div>
 
-      <div class="directoryHeader">
-        <h3>📋 Enrolled Students (<span id="studentCount">0</span>)</h3>
-        <label class="studentSearch">
-          <span>Search Student:</span>
-          <input id="studentSearch" type="search" placeholder="Search by name, ID, or class..." oninput="searchStudents(this.value)">
-        </label>
-      </div>
-        <div id="studentList"></div>
-      <div id="studentPaginationBar" class="paginationBar"></div>
-    </div>
 
     <!-- TEACHER MANAGEMENT & PERMISSIONS TAB -->
     <div id="teachersTab" class="hidden">
@@ -1189,8 +1194,9 @@ function show(pageId) {
   if (target) target.classList.add('active');
 
   const isGateway = pageId === 'gateway';
-  $('topHeader').classList.toggle('hidden', !isGateway);
-  $('appShell').classList.toggle('show', !isGateway);
+$('topHeader').classList.toggle('hidden', !isGateway);
+$('appShell').classList.toggle('show', !isGateway);
+$('mainWrap').classList.toggle('hidden', !isGateway);  
   window.scrollTo(0, 0);
 }
 
@@ -1663,8 +1669,8 @@ async function loadPermissions() {
   $('tabBtnTeachers').classList.toggle('hidden', !isPrincipal);
   $('tabBtnSubjects').classList.toggle('hidden', !isPrincipal);
 
-  const addBox = document.querySelector('.addStudentBox');
-  if (addBox) addBox.classList.toggle('hidden', !isRegistrar);
+  const addBox = $('addStudentCollapsible');
+if (addBox) addBox.classList.toggle('hidden', !isRegistrar);
 
   if (!isPrincipal && (STATE.adminTab === 'teachers' || STATE.adminTab === 'subjects')) {
     adminTab('students');
@@ -1915,7 +1921,8 @@ function editStudent(id) {
   $('newGuardian').value = s.guardian || '';
   $('newPhone').value = s.phone || '';
   $('newGradeLocked').checked = !!s.gradeLocked;
-  document.querySelector('.addStudentBox').scrollIntoView({ behavior: 'smooth' });
+$('addStudentCollapsible').open = true;
+document.querySelector('.addStudentBox').scrollIntoView({ behavior: 'smooth' });
 }
 
 async function deleteStudent(id) {
@@ -2168,7 +2175,11 @@ function buildAdminOverviewCards() {
 
 function jumpToAddStudent() {
   adminTab('students');
-  setTimeout(() => document.querySelector('.addStudentBox')?.scrollIntoView({ behavior: 'smooth' }), 50);
+  setTimeout(() => {
+    const d = $('addStudentCollapsible');
+    if (d) d.open = true;
+    document.querySelector('.addStudentBox')?.scrollIntoView({ behavior: 'smooth' });
+  }, 50);
 }
 
 function buildAdminOverviewTable() {
