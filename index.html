@@ -2097,7 +2097,7 @@ async function deleteStudent(id) {
 }
 
 async function toggleLock(id, currentlyLocked) {
-  const result = await apiCall('setGradeLock', { id: id, locked: !currentlyLocked });
+  const result = await apiCall('setGradeLock', { id: id, locked: !currentlyLocked, actorRole: currentActorRole() });
   if (result.success) {
     await loadStudents();
     renderStudentList();
@@ -2602,7 +2602,7 @@ function renderPermissionCheckboxes() {
 async function saveGradingPermissions() {
   const perms = {};
   PERIOD_KEYS.forEach(k => { perms[k] = $(`perm_${k}`).checked; });
-  const result = await apiCall('savePermissions', { permissions: perms });
+  const result = await apiCall('savePermissions', { permissions: perms, actorRole: currentActorRole() });
   if (result.success) {
     STATE.permissions = perms;
     alert(result.message);
@@ -2706,7 +2706,7 @@ function editTeacher(id) {
 
 async function deleteTeacher(id) {
   if (!confirm(`Remove teacher ${id}?`)) return;
-  const result = await apiCall('deleteTeacher', { id: id });
+  const result = await apiCall('deleteTeacher', { id: id, actorRole: currentActorRole() });
   if (result.success) {
     await loadTeachers();
     renderTeacherList();
