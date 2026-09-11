@@ -3086,15 +3086,34 @@ async function removeSubject(name) {
 }
 
 function renderSubjectList() {
-  $('subjectList').innerHTML = STATE.subjects.map(s => `
-    <div class="item">
-      <b>${esc(s)}</b>
-      <button class="danger" data-action="removeSubject" data-id="${esc(s)}">🗑 Remove</button>
-    </div>`).join('') || '<p class="muted">No subjects added yet.</p>';
- 
-   renderAssignmentsOverview();
-}
+  const wrap = $('subjectList');
+  if (!STATE.subjects.length) {
+    wrap.innerHTML = '<p class="muted">No subjects added yet.</p>';
+    renderAssignmentsOverview();
+    return;
+  }
 
+  const rows = STATE.subjects.map((s, idx) => `
+    <tr>
+      <td>${idx + 1}</td>
+      <td style="text-align:left;font-weight:600;">${esc(s)}</td>
+      <td class="studentCardActions" style="justify-content:center;">
+        <button class="danger" data-action="removeSubject" data-id="${esc(s)}">🗑 Remove</button>
+      </td>
+    </tr>`).join('');
+
+  wrap.innerHTML = `
+    <div class="tableWrap">
+      <table class="scoreTable studentTable">
+        <thead>
+          <tr><th>#</th><th>SUBJECT NAME</th><th>ACTIONS</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+
+  renderAssignmentsOverview();
+}
 function handleDelegatedClick(e) {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
