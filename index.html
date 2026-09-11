@@ -510,6 +510,12 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
   word-break: break-word;
 }
 
+   .pieChartRow { display:flex; align-items:center; gap:28px; flex-wrap:wrap; padding:10px 8px; }
+.pieChartSvg { flex:0 0 auto; }
+.pieLegend { display:flex; flex-direction:column; gap:8px; }
+.pieLegendItem { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#334155; }
+.pieLegendSwatch { width:14px; height:14px; border-radius:4px; flex:0 0 14px; }
+   
 @media (max-width: 900px) {
   .appShell.show { flex-direction: column; }
   .sidebar {
@@ -2202,7 +2208,7 @@ function buildStudentTableHtmlFinance(items) {
         <td><button class="light expandBtn" data-action="toggleGradeExpand" data-row="${rowId}">+</button></td>
         <td class="studentTableName">
           <div class="thumb small">${photoTag(s.photo, '')}</div>
-          <div><b>${esc(s.name)}</b><br><span class="muted">${esc(s.id)}</span> <span class="lockBadge ${s.gradeLocked ? 'locked' : 'unlocked'}">${s.gradeLocked ? 'LOCKED' : 'OPEN'}</span></div>
+          <div><b>${esc(s.name)}</b><br><span class="muted">${esc(s.id)}</span> <span class="lockBadge ${s.gradeLocked ? 'locked' : 'unlocked'}">${s.gradeLocked ? 'LOCKED' : 'OPEN'}</span>${s.status === 'Dropped' ? ' <span class="lockBadge locked">DROPPED</span>' : ''}</div>
         </td>
         <td>${esc(s.className)}</td>
         <td>${formatMoney(f.tuitionTotal, f.currency)}</td>
@@ -2210,10 +2216,11 @@ function buildStudentTableHtmlFinance(items) {
         <td>${formatMoney(paidSum, f.currency)}</td>
         <td class="${balance > 0 ? 'fail' : 'pass'}">${formatMoney(balance, f.currency)}</td>
         <td>${toNum(f.otherPayments) > 0 ? formatMoney(f.otherPayments, f.currency) : '—'}</td>
-        <td class="studentCardActions">
+         <td class="studentCardActions">
           <button class="light" data-action="editStudent" data-id="${esc(s.id)}">✏️</button>
           <button class="light" data-action="manageFinance" data-id="${esc(s.id)}">💳</button>
           <button class="light" data-action="toggleLock" data-id="${esc(s.id)}" data-locked="${s.gradeLocked}">${s.gradeLocked ? '🔓' : '🔒'}</button>
+          <button class="danger" data-action="dropStudent" data-id="${esc(s.id)}">🚫 Drop</button>
           <button class="danger" data-action="deleteStudent" data-id="${esc(s.id)}">🗑</button>
         </td>
       </tr>
@@ -2253,6 +2260,7 @@ function buildStudentTableHtmlFinance(items) {
         <td>${g.grade}</td>
         <td class="studentCardActions">
           <button class="light" data-action="manageScores" data-id="${esc(s.id)}">📊 Grades</button>
+          <button class="light" data-action="manageFinance" data-id="${esc(s.id)}">💳 Registration</button>
           <button class="light" data-action="toggleLock" data-id="${esc(s.id)}" data-locked="${s.gradeLocked}">${s.gradeLocked ? '🔓 Unlock' : '🔒 Lock'}</button>
         </td>
       </tr>
@@ -2408,6 +2416,18 @@ async function deleteStudent(id) {
   }
 }
 
+   async function dropStudent(id) {
+  const s = STATE.students.find(x => x.id === id);
+  const label = s ? `${s.name} (${s.id})` : id;
+  if (!confirm(`Drop ${label} from the school?\n\nThis clears their name, photo, DOB, guardian and contact details, disables login, and locks their grade sheet. Their ID and academic/finance history stay on file. This cannot be undone from the portal.`)) return;
+  const result = await apiCall('dropStudent', { id: id, actorRole: currentActorRole() }, { loadingMessage: 'Dropping student…' });
+  if (result.success) {
+    alert(result.message);
+    await loadStudents();
+    renderStudentList(STATE.studentSearchText);
+  }
+}
+   
 async function toggleLock(id, currentlyLocked) {
   const result = await apiCall('setGradeLock', { id: id, locked: !currentlyLocked, actorRole: currentActorRole() });
   if (result.success) {
@@ -2601,9 +2621,9 @@ function buildAdminOverviewCards() {
   const yrEl = $('ovFooterYear');
   if (yrEl) yrEl.textContent = STATE.activeYear;
   const principal = isPrincipalUser();
-  const yearStudents = STATE.students.filter(s => String(s.academicYear) === String(STATE.activeYear));
+const yearStudents = STATE.students.filter(s =>
+    String(s.academicYear) === String(STATE.activeYear) && s.status !== 'Dropped');
   const studentCount = yearStudents.length;
-
   let cardsHtml = `
     <div class="ovCard">
       <div class="ovCardIcon ovIconBlue">👨‍🎓</div>
@@ -2634,40 +2654,64 @@ function buildAdminOverviewCards() {
       </div>
     </div>`;
   } else {
+    const totalPaid = yearStudents.reduce((sum, s) => {
+      const f = s.finance || {};
+      return sum + (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
+    }, 0);
     const totalBalance = yearStudents.reduce((sum, s) => {
       const f = s.finance || {};
       const paid = (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
       return sum + Math.max(0, toNum(f.tuitionTotal) - paid);
     }, 0);
-    const paidCount = yearStudents.filter(s => (s.finance || {}).registrationPaid).length;
+    const fullyPaidCount = yearStudents.filter(s => {
+      const f = s.finance || {};
+      const paid = (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
+      return toNum(f.tuitionTotal) > 0 && paid >= toNum(f.tuitionTotal);
+    }).length;
+    const firstCurrency = yearStudents.find(s => (s.finance || {}).currency);
+    const currencyLabel = firstCurrency ? firstCurrency.finance.currency : 'USD';
+
     cardsHtml += `
     <div class="ovCard">
       <div class="ovCardIcon ovIconTeal">✅</div>
       <div class="ovCardBody">
-        <div class="ovCardNum">${paidCount}</div>
-        <div class="ovCardLabel">Registrations Paid</div>
+        <div class="ovCardNum">${fullyPaidCount}</div>
+        <div class="ovCardLabel">Completed Full Tuition Payment</div>
         <button class="ovCardBtn" onclick="adminTab('students')">Students</button>
+      </div>
+    </div>
+    <div class="ovCard">
+      <div class="ovCardIcon ovIconBlue">💰</div>
+      <div class="ovCardBody">
+        <div class="ovCardNum">${totalPaid.toLocaleString()}</div>
+        <div class="ovCardLabel">Total Tuition Collected (${esc(currencyLabel)})</div>
+        <button class="ovCardBtn" onclick="adminTab('students')">Finance</button>
       </div>
     </div>
     <div class="ovCard">
       <div class="ovCardIcon ovIconGold">💳</div>
       <div class="ovCardBody">
         <div class="ovCardNum">${totalBalance.toLocaleString()}</div>
-        <div class="ovCardLabel">Outstanding Balance</div>
+        <div class="ovCardLabel">Total Balance Outstanding</div>
         <button class="ovCardBtn" onclick="adminTab('students')">Finance</button>
       </div>
     </div>`;
   }
 
-    box.innerHTML = cardsHtml;
- renderClassBarChart();
+     box.innerHTML = cardsHtml;
+  if (principal) {
+    renderClassPieChart();
+  } else {
+    renderClassPieChart();
+  }
 }
 
 function renderClassBarChart() {
   const el = $('ovClassChart');
   if (!el) return;
-  const yearStudents = STATE.students.filter(s => String(s.academicYear) === String(STATE.activeYear));
-  const counts = {};
+  const yearStudents = STATE.students.filter(s =>
+    String(s.academicYear) === String(STATE.activeYear) && s.status !== 'Dropped');
+   const counts = {};
   yearStudents.forEach(s => { counts[s.className] = (counts[s.className] || 0) + 1; });
   const entries = Object.entries(counts).sort((a, b) => GRADE_LEVELS.indexOf(a[0]) - GRADE_LEVELS.indexOf(b[0]));
   if (!entries.length) { el.innerHTML = '<p class="muted">No students to chart for this academic year.</p>'; return; }
@@ -2685,6 +2729,41 @@ function renderClassBarChart() {
   </div>`;
 }
 
+const PIE_COLORS = ['#103db8','#20c9a6','#ffd000','#f0879a','#8b5cf6','#f97316','#0ea5e9','#84cc16','#ef4444','#14b8a6','#a855f7','#eab308'];
+
+function renderClassPieChart() {
+  const el = $('ovClassChart');
+  if (!el) return;
+  const yearStudents = STATE.students.filter(s =>
+    String(s.academicYear) === String(STATE.activeYear) && s.status !== 'Dropped');
+  const counts = {};
+  yearStudents.forEach(s => { counts[s.className] = (counts[s.className] || 0) + 1; });
+  const entries = Object.entries(counts).sort((a, b) => GRADE_LEVELS.indexOf(a[0]) - GRADE_LEVELS.indexOf(b[0]));
+  if (!entries.length) { el.innerHTML = '<p class="muted">No students to chart for this academic year.</p>'; return; }
+
+  const total = entries.reduce((sum, [, c]) => sum + c, 0);
+  let cumulative = 0;
+  const gradientStops = entries.map(([cls, count], idx) => {
+    const color = PIE_COLORS[idx % PIE_COLORS.length];
+    const start = (cumulative / total) * 360;
+    cumulative += count;
+    const end = (cumulative / total) * 360;
+    return `${color} ${start}deg ${end}deg`;
+  }).join(', ');
+
+  const legend = entries.map(([cls, count], idx) => {
+    const color = PIE_COLORS[idx % PIE_COLORS.length];
+    const pct = ((count / total) * 100).toFixed(1);
+    return `<div class="pieLegendItem"><span class="pieLegendSwatch" style="background:${color};"></span>${esc(cls)}: <b>${count}</b> (${pct}%)</div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="pieChartRow">
+      <div class="pieChartSvg" style="width:180px;height:180px;border-radius:50%;background:conic-gradient(${gradientStops});box-shadow:0 6px 18px rgba(8,47,80,0.15);"></div>
+      <div class="pieLegend">${legend}<div class="pieLegendItem" style="margin-top:6px;border-top:1px solid #e2e8f0;padding-top:6px;">Total: <b>${total}</b> students</div></div>
+    </div>`;
+}
+   
 function jumpToAddStudent() {
   adminTab('students');
   setTimeout(() => {
@@ -3201,7 +3280,7 @@ function handleDelegatedClick(e) {
     case 'manageFinance': manageFinance(id); break;
     case 'editStudent': editStudent(id); break;
     case 'deleteStudent': deleteStudent(id); break;
-    case 'toggleLock': toggleLock(id, btn.dataset.locked === 'true'); break;
+    case 'dropStudent': dropStudent(id); break;    case 'toggleLock': toggleLock(id, btn.dataset.locked === 'true'); break;
     case 'editTeacher': editTeacher(id); break;
     case 'deleteTeacher': deleteTeacher(id); break;
     case 'removeSubject': removeSubject(id); break;
