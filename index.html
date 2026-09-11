@@ -633,8 +633,8 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
   <section id="admin" class="page">
     <div class="toolbar">
       <div>
-        <h2>Admin Dashboard</h2>
-        <small class="muted">Liberty Prayer Deliverance Ministries School System</small>
+        <h2 id="adminDashTitle">Admin Dashboard</h2>
+        <small class="muted" id="adminDashSubtitle">Liberty Prayer Deliverance Ministries School System</small>
       </div>
       <div class="adminActions">
         <div class="yearPicker">
@@ -806,9 +806,10 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         <label>6th Period<input id="p6" type="number" min="0" max="100" placeholder="0 - 100"></label>
         <label>2nd Sem Exam<input id="exam2" type="number" min="0" max="100" placeholder="0 - 100"></label>
       </div>
+      <p id="gradeRoleNotice" class="financeRoleNotice hidden">🔒 View-only: Registrar accounts cannot edit grades. Contact the Principal to update a score.</p>
       <div class="scoreFormActions">
-        <button onclick="saveRecord()">Save Subject Scores</button>
-        <button class="light" onclick="clearForm()">Clear Score Inputs</button>
+        <button id="scoreSaveBtn" onclick="saveRecord()">Save Subject Scores</button>
+        <button id="scoreClearBtn" class="light" onclick="clearForm()">Clear Score Inputs</button>
       </div>
     </div>
     <div class="box">
@@ -1494,9 +1495,10 @@ async function enterAdminPortal() {
   renderTeacherList();
   renderSubjectList();
   renderPermissionCheckboxes();
-  resetAssignmentsBuilder();
+   resetAssignmentsBuilder();
   addAssignmentRow();
 
+  applyAdminRoleUI();
   show('admin');
 }
 
@@ -1542,6 +1544,26 @@ async function loadPermissions() {
   STATE.permissions = (res.success && res.permissions) || {};
 }
 
+   function applyAdminRoleUI() {
+  const isPrincipal = isPrincipalUser();
+  const isRegistrar = isRegistrarUser();
+  const name = (STATE.currentUser.data || {}).username || 'Admin';
+
+  $('adminDashTitle').textContent = isPrincipal ? 'Principal Dashboard' : (isRegistrar ? 'Registrar Dashboard' : 'Admin Dashboard');
+  $('adminDashSubtitle').textContent = `${name} • Liberty Prayer Deliverance Ministries School System`;
+
+  // Teacher Management & Subject Log are Principal-only tabs.
+  $('tabBtnTeachers').classList.toggle('hidden', !isPrincipal);
+  $('tabBtnSubjects').classList.toggle('hidden', !isPrincipal);
+
+  // Registering new students is Registrar-only.
+  const addBox = document.querySelector('.addStudentBox');
+  if (addBox) addBox.classList.toggle('hidden', !isRegistrar);
+
+  if (!isPrincipal && (STATE.adminTab === 'teachers' || STATE.adminTab === 'subjects')) {
+    adminTab('students');
+  }
+}
 // =============================================================================
 // ADMIN — STUDENT MANAGEMENT
 // =============================================================================
@@ -1576,11 +1598,12 @@ function renderStudentList(filterText) {
   const start = STATE.studentPage * STUDENTS_PAGE_SIZE;
   const pageItems = filtered.slice(start, start + STUDENTS_PAGE_SIZE);
 
-  $('studentList').innerHTML = buildStudentTableHtml(pageItems);
+    const buildFn = isPrincipalUser() ? buildStudentTableHtmlAcademic : buildStudentTableHtmlFinance;
+  $('studentList').innerHTML = buildFn(pageItems);
   renderStudentPaginationBar(filtered.length, totalPages);
 }
 
-function buildStudentTableHtml(items) {
+function buildStudentTableHtmlFinance(items) {
   if (!items.length) return '<p class="muted">No students found for this academic year.</p>';
 
   const rows = items.map(s => {
@@ -1626,6 +1649,45 @@ function buildStudentTableHtml(items) {
     </div>`;
 }
 
+   function buildStudentTableHtmlAcademic(items) {
+  if (!items.length) return '<p class="muted">No students found for this academic year.</p>';
+
+  const rows = items.map(s => {
+    const rowId = 'grow_' + s.id.replace(/[^a-zA-Z0-9]/g, '_');
+    const yearlyAvg = studentSubjectsForYear(s, s.academicYear).length ? studentYearlyAverage(s, s.academicYear) : 0;
+    const g = gradeFor(yearlyAvg);
+
+    return `
+      <tr class="studentTableRow">
+        <td><button class="light expandBtn" data-action="toggleGradeExpand" data-row="${rowId}">+</button></td>
+        <td class="studentTableName">
+          <div class="thumb small">${photoTag(s.photo, '')}</div>
+          <div><b>${esc(s.name)}</b><br><span class="muted">${esc(s.id)}</span> <span class="lockBadge ${s.gradeLocked ? 'locked' : 'unlocked'}">${s.gradeLocked ? 'LOCKED' : 'OPEN'}</span></div>
+        </td>
+        <td>${esc(s.className)}</td>
+        <td>${yearlyAvg ? yearlyAvg.toFixed(1) : '-'}</td>
+        <td>${g.grade}</td>
+        <td class="studentCardActions">
+          <button class="light" data-action="manageScores" data-id="${esc(s.id)}">📊 Grades</button>
+          <button class="light" data-action="toggleLock" data-id="${esc(s.id)}" data-locked="${s.gradeLocked}">${s.gradeLocked ? '🔓 Unlock' : '🔒 Lock'}</button>
+        </td>
+      </tr>
+      <tr id="${rowId}" class="gradeExpandRow hidden">
+        <td colspan="6">${buildStudentGradeMiniTable(s)}</td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <div class="tableWrap">
+      <table class="scoreTable studentTable">
+        <thead><tr>
+          <th></th><th>STUDENT</th><th>CLASS</th><th>YEAR AVG</th><th>GRADE</th><th>ACTIONS</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+   
 function buildStudentGradeMiniTable(s) {
   const subs = studentSubjectsForYear(s, s.academicYear);
   if (s.gradeLocked) return '<p class="muted" style="padding:10px;">🔒 Grade sheet locked for this student.</p>';
@@ -1721,9 +1783,9 @@ async function addStudent() {
   let result;
   if (STATE.editingStudentId) {
     student.id = STATE.editingStudentId;
-    result = await apiCall('updateStudent', { student: student });
+   result = await apiCall('updateStudent', { student: student, actorRole: currentActorRole() });
   } else {
-    result = await apiCall('addStudent', { student: student });
+    result = await apiCall('addStudent', { student: student, actorRole: currentActorRole() });
   }
 
   if (result.success) {
@@ -1786,6 +1848,13 @@ function manageScores(id) {
   $('recordSubject').innerHTML = STATE.subjects.map(sub => `<option value="${esc(sub)}">${esc(sub)}</option>`).join('');
   clearForm();
   renderRecordsList();
+
+  const editable = isPrincipalUser();
+  document.querySelectorAll('#records .periodGrid input').forEach(el => el.disabled = !editable);
+  $('scoreSaveBtn').classList.toggle('hidden', !editable);
+  $('scoreClearBtn').classList.toggle('hidden', !editable);
+  $('gradeRoleNotice').classList.toggle('hidden', editable);
+
   show('records');
 }
 
@@ -1858,6 +1927,16 @@ function isRegistrarUser() {
     String((STATE.currentUser.data || {}).role || '').trim().toLowerCase() === 'registrar';
 }
 
+   function isPrincipalUser() {
+  return STATE.currentUser && STATE.currentUser.userType === 'admin' &&
+    String((STATE.currentUser.data || {}).role || '').trim().toLowerCase() === 'principal';
+}
+function currentActorRole() {
+  return STATE.currentUser && STATE.currentUser.userType === 'admin'
+    ? String((STATE.currentUser.data || {}).role || '').trim().toLowerCase()
+    : '';
+}
+   
 function manageFinance(id) {
   STATE.financeStudentId = id;
   const s = STATE.students.find(x => x.id === id);
@@ -2017,9 +2096,9 @@ async function addTeacher() {
   let result;
   if (STATE.editingTeacherId) {
     teacher.id = STATE.editingTeacherId;
-    result = await apiCall('updateTeacher', { teacher: teacher });
+   result = await apiCall('updateTeacher', { teacher: teacher, actorRole: currentActorRole() });
   } else {
-    result = await apiCall('addTeacher', { teacher: teacher });
+    result = await apiCall('addTeacher', { teacher: teacher, actorRole: currentActorRole() });
   }
 
   if (result.success) {
