@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LiPDMiSS Portal</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#082f50">
+<link rel="apple-touch-icon" href="assets/lipdmiss-logo.png">
 <style>
 /* =============================================================================
    LiPDMiSS Student, Teacher, Score & Finance Portal Stylesheet (embedded)
@@ -1027,6 +1030,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
     <div class="toolbar">
       <button onclick="show('teacher')">← Back to Dashboard</button>
       <h2>⚙️ Account Settings</h2>
+       <button type="button" class="light installAppBtn hidden" onclick="installApp()">📲 Install App on This Device</button>
     </div>
     <div class="box" style="max-width:650px;">
       <p class="muted">Update your profile photo, name, and title, or change your password.</p>
@@ -1109,6 +1113,26 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       <div id="paymentPrintable"></div>
     </div>
   </section>
+     <section id="studentSettings" class="page">
+  <div class="toolbar">
+    <button onclick="show('student')">← Back to Dashboard</button>
+    <h2>⚙️ Account Settings</h2>
+  </div>
+  <div class="box" style="max-width:650px;">
+    <button type="button" class="light installAppBtn hidden" onclick="installApp()">📲 Install App on This Device</button>
+    <label class="check" style="margin:14px 0;">
+      <input id="stayLoggedInToggle" type="checkbox" onchange="toggleStayLoggedIn(this.checked)"> Stay logged in on this device
+    </label>
+    <h3>My Profile (View Only)</h3>
+    <table class="profileInfoTable" id="studentsProfileTable"></table>
+    <h3 style="margin-top:22px;">Change Password</h3>
+    <div class="grid">
+      <label>New Password<input id="studentsNewPassword" type="password" placeholder="New password"></label>
+      <label>Confirm New Password<input id="studentsConfirmPassword" type="password" placeholder="Confirm new password"></label>
+    </div>
+    <button onclick="saveStudents()">💾 Change Password</button>
+  </div>
+</section>
 
   <!-- =========================================================================
        ADMIN DASHBOARD — no "Cloud / Google Sheets Backend" tab: the backend
@@ -1430,6 +1454,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
     <div id="settingsTab" class="hidden">
       <div class="box" style="max-width:650px;">
         <h3>⚙️ My Account Settings</h3>
+         <button type="button" class="light installAppBtn hidden" onclick="installApp()">📲 Install App on This Device</button>
         <p class="muted">Update your profile photo, display name, and title, or change your password.</p>
         <label class="fullSpan">Profile Photo
           <input id="adminSettingsPhoto" type="file" accept="image/*" onchange="previewAdminSettingsPhoto(event)">
@@ -3387,7 +3412,8 @@ student: [
   { icon:'📊', label:'Dashboard', action:() => show('student') },
   { icon:'📝', label:'Grade Sheet', action:() => show('studentGrades') },
   { icon:'💳', label:'Payment Record', action:() => show('studentFinance') },
-  { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }   // ← add this
+  { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }   
+  { icon:'⚙️', label:'Settings', action:() => { show('studentSettings'); renderStudentSettingsForm(); } }
 ]
 };
 
