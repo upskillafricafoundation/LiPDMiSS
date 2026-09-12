@@ -301,7 +301,19 @@ select.gwUnderlineInput { padding: 9px 2px 9px 0; background: #fff; }
 .installmentView b { color: #103db8; }
 
 .lockedNotice { background: #fff7ed; border: 1px dashed #f59e0b; color: #92400e; padding: 26px 20px; border-radius: 10px; text-align: center; font-weight: bold; }
+/* OVERDUE PAYMENT BANNER — blinking alert on the student dashboard when a
+   registration or tuition installment deadline has passed unpaid. */
+.overdueBanner {
+  background: #dc2626; color: #fff; font-weight: 800; font-size: 14px;
+  padding: 14px 20px; border-radius: 10px; margin: 0 0 15px; text-align: center;
+  animation: overdueBlink 1s step-start infinite;
+}
+.overdueBanner div { margin: 2px 0; }
+@keyframes overdueBlink { 50% { opacity: 0.35; } }
 
+/* CLASS FEE SCHEDULE TABLE (principal "Fees" tab) */
+.feeScheduleGrid { display:grid; grid-template-columns: repeat(4,1fr); gap:12px 18px; }
+.feeInstallmentRow { display:grid; grid-template-columns: 1fr 1fr; gap:10px; border:1px solid #e2e8f0; border-radius:8px; padding:10px; background:#f8fafc; }
 /* COLLAPSIBLE GRADE SHEET / PAYMENT RECORD SECTIONS */
 .collapsible { background: #fff; border-radius: 14px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06); margin: 15px 0; overflow: hidden; border: 1px solid #e2e8f0; }
 .collapsible > summary { cursor: pointer; padding: 18px 22px; font-weight: 800; color: #082f50; font-size: 16px; list-style: none; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; user-select: none; }
@@ -1017,6 +1029,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       <button onclick="logout()">⌂ Home / Logout</button>
       <div class="dashActions" id="studentGreetingBox"></div>
     </div>
+    <div id="studentOverdueBanner"></div>
         <div class="sheet">
      <div class="pdfActions">
   <button class="light" onclick="printSheet('personalPrintable')">🖨️ Print</button>
@@ -1108,11 +1121,12 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       <div class="ovFooterBar">LiPDMiSS System Management • <span id="ovFooterYear"></span> academic year</div>
     </div>
 
-        <div class="tabs">
+    <div class="tabs">
       <button id="tabBtnStudents" class="activeTab" onclick="adminTab('students')">👨‍🎓 Student Management</button>
       <button id="tabBtnTeachers" onclick="adminTab('teachers')">👨‍🏫 Teacher Management</button>
       <button id="tabBtnPermissions" onclick="adminTab('permissions')">🗓️ Grading &amp; Lesson Plans</button>
       <button id="tabBtnSubjects" onclick="adminTab('subjects')">📚 Subject Log</button>
+      <button id="tabBtnFees" onclick="adminTab('fees')">🏦 Fees</button>
     </div>
 
     <!-- STUDENTS TAB -->
@@ -1150,7 +1164,8 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
             <input id="newName" placeholder="First Middle Last">
           </label>
           <label>Class / Grade *
-            <select id="newGrade"></select>
+            <select id="newGrade" onchange="onNewGradeChange()"></select>
+            <small class="muted" id="newGradeFeePreview"></small>
           </label>
           <label>Academic Year *
             <select id="newAcademicYear"></select>
@@ -1289,7 +1304,72 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         </div>
       </details>
     </div>
+
+    <!-- CLASS FEE SCHEDULE TAB — Principal sets tuition/registration/
+         requirements fees & deadlines per class; Registrar's Add Student
+         form auto-applies these the moment a class is picked. -->
+    <div id="feesTab" class="hidden">
+      <div class="box">
+        <h3>🏦 Class Fee Schedule</h3>
+        <p class="muted">Set tuition, registration and requirements fees, plus payment deadlines, per class. When Registrar registers a new student into a class, these amounts are automatically assigned to that student's payment record. Once a deadline passes without payment, the student sees a blinking overdue notice on their dashboard.</p>
+        <div class="grid">
+          <label>Class *
+            <select id="feeClass"></select>
+          </label>
+          <label>Currency
+            <input id="feeCurrency" placeholder="e.g. USD or LRD">
+          </label>
+          <label>Registration Fee
+            <input id="feeRegistrationFee" type="number" min="0" step="0.01" placeholder="0.00">
+          </label>
+          <label>Registration Deadline
+            <input id="feeRegistrationDeadline" type="date">
+          </label>
+          <label>Tuition Total (Academic Year)
+            <input id="feeTuitionTotal" type="number" min="0" step="0.01" placeholder="0.00">
+          </label>
+          <label>Requirements Fee
+            <input id="feeRequirementsFee" type="number" min="0" step="0.01" placeholder="0.00">
+          </label>
+          <label>PE Suit Fee
+            <input id="feePeSuitFee" type="number" min="0" step="0.01" placeholder="0.00">
+          </label>
+          <label>Portal Fee
+            <input id="feePortalFee" type="number" min="0" step="0.01" placeholder="0.00">
+          </label>
+        </div>
+        <h4 class="semTitle">Tuition Installment Amounts &amp; Deadlines</h4>
+        <div class="feeScheduleGrid">
+          <div class="feeInstallmentRow">
+            <label>1st Installment<input id="feeInst1Amount" type="number" min="0" step="0.01" placeholder="0.00"></label>
+            <label>Deadline<input id="feeInst1Deadline" type="date"></label>
+          </div>
+          <div class="feeInstallmentRow">
+            <label>2nd Installment<input id="feeInst2Amount" type="number" min="0" step="0.01" placeholder="0.00"></label>
+            <label>Deadline<input id="feeInst2Deadline" type="date"></label>
+          </div>
+          <div class="feeInstallmentRow">
+            <label>3rd Installment<input id="feeInst3Amount" type="number" min="0" step="0.01" placeholder="0.00"></label>
+            <label>Deadline<input id="feeInst3Deadline" type="date"></label>
+          </div>
+          <div class="feeInstallmentRow">
+            <label>4th Installment<input id="feeInst4Amount" type="number" min="0" step="0.01" placeholder="0.00"></label>
+            <label>Deadline<input id="feeInst4Deadline" type="date"></label>
+          </div>
+        </div>
+        <div class="scoreFormActions">
+          <button onclick="saveClassFee()">💾 Save Fee Schedule for This Class</button>
+          <button class="light" onclick="loadFeeIntoForm('')">Clear Form</button>
+        </div>
+      </div>
+      <div class="box">
+        <h3>Current Fee Schedules</h3>
+        <div id="feeScheduleList"></div>
+      </div>
+    </div>
   </section>
+
+  <!-- ACADEMIC SCORES MANAGEMENT PAGE (ADMIN ONLY) -->
 
   <!-- ACADEMIC SCORES MANAGEMENT PAGE (ADMIN ONLY) -->
   <section id="records" class="page">
@@ -1448,6 +1528,7 @@ const STATE = {
   teachers: [],
   subjects: [],
   permissions: {},
+  classFees: {},
   activeYear: APP_CONFIG.DEFAULT_ACADEMIC_YEAR,
   adminTab: 'students',
   newPhotoDataUrl: '',
@@ -1783,11 +1864,21 @@ async function enterStudentPortal() {
   const tRes = await apiCall('getTeachers', {}, { silent: true });
   STATE.teachers = (tRes.success && tRes.teachers) || [];
   $('studentGreetingBox').innerHTML = `<span class="muted">Welcome, <b>${esc(s.name)}</b> (${esc(s.id)})</span>`;
+  renderOverdueBanner(s);
   renderPersonalSheet(s);
   renderGradeSheet(s);
   renderPaymentSheet(s);
   renderSidebar();
   show('student');
+}
+
+function renderOverdueBanner(s) {
+  const box = $('studentOverdueBanner');
+  if (!box) return;
+  const notices = s.financeOverdueNotices || [];
+  box.innerHTML = notices.length
+    ? `<div class="overdueBanner">${notices.map(n => `<div>⚠️ ${esc(n)}</div>`).join('')}</div>`
+    : '';
 }
 function printMessage(id) {
   const m = (STATE.inboxMessages || []).find(x => String(x.id) === String(id));
@@ -2414,13 +2505,16 @@ async function enterAdminPortal() {
   populateAcademicYearSelects();
   $('adminSchoolYear').value = STATE.activeYear;
 
-  await Promise.all([loadStudents(), loadTeachers(), loadSubjects(), loadPermissions()]);
+  await Promise.all([loadStudents(), loadTeachers(), loadSubjects(), loadPermissions(), loadClassFees()]);
 
   renderStudentList();
   renderTeacherList();
   renderSubjectList();
   renderPermissionCheckboxes();
-       resetAssignmentsBuilder();
+  renderFeeScheduleList();
+  populateFeeClassSelect();
+  onNewGradeChange();
+  resetAssignmentsBuilder();
   addAssignmentRow();
   populateLessonPlanFilter();
   if (isPrincipalUser()) await loadAdminLessonPlans();
@@ -2465,6 +2559,7 @@ function populateAcademicYearSelects() {
   $('newAcademicYear').innerHTML = opts;
   $('newAcademicYear').value = STATE.activeYear;
   $('newGrade').innerHTML = GRADE_LEVELS.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+  onNewGradeChange();
 }
 
 function changeSchoolYear(year) {
@@ -2482,7 +2577,7 @@ function changeSchoolYear(year) {
 
  function adminTab(tab) {
   STATE.adminTab = tab;
-  ['overview', 'students', 'teachers', 'permissions', 'subjects'].forEach(t => {
+  ['overview', 'students', 'teachers', 'permissions', 'subjects', 'fees'].forEach(t => {
     const el = $(`${t}Tab`);
     if (el) el.classList.toggle('hidden', t !== tab);
     const btn = $(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -2507,6 +2602,106 @@ async function loadPermissions() {
   STATE.permissions = (res.success && res.permissions) || {};
 }
 
+   async function loadClassFees() {
+  const res = await apiCall('getClassFees', {}, { silent: true });
+  STATE.classFees = (res.success && res.classFees) || {};
+}
+
+function populateFeeClassSelect() {
+  const sel = $('feeClass');
+  if (!sel) return;
+  sel.innerHTML = GRADE_LEVELS.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+  sel.onchange = () => loadFeeIntoForm(sel.value);
+  loadFeeIntoForm(sel.value);
+}
+
+function loadFeeIntoForm(className) {
+  if (className && $('feeClass')) $('feeClass').value = className;
+  const fee = className ? STATE.classFees[className] : null;
+  $('feeCurrency').value = fee ? fee.currency : 'USD';
+  $('feeRegistrationFee').value = fee ? fee.registrationFee : 0;
+  $('feeRegistrationDeadline').value = fee ? fee.registrationDeadline : '';
+  $('feeTuitionTotal').value = fee ? fee.tuitionTotal : 0;
+  $('feeRequirementsFee').value = fee ? fee.requirementsFee : 0;
+  $('feePeSuitFee').value = fee ? fee.peSuitFee : 0;
+  $('feePortalFee').value = fee ? fee.portalFee : 0;
+  const inst = fee ? fee.installments : [{}, {}, {}, {}];
+  [1, 2, 3, 4].forEach((n, idx) => {
+    $(`feeInst${n}Amount`).value = (inst[idx] && inst[idx].amount) || 0;
+    $(`feeInst${n}Deadline`).value = (inst[idx] && inst[idx].deadline) || '';
+  });
+}
+
+async function saveClassFee() {
+  const className = $('feeClass').value;
+  if (!className) { alert('Select a class.'); return; }
+  const classFee = {
+    className: className,
+    currency: $('feeCurrency').value.trim() || 'USD',
+    registrationFee: toNum($('feeRegistrationFee').value),
+    registrationDeadline: $('feeRegistrationDeadline').value,
+    tuitionTotal: toNum($('feeTuitionTotal').value),
+    requirementsFee: toNum($('feeRequirementsFee').value),
+    peSuitFee: toNum($('feePeSuitFee').value),
+    portalFee: toNum($('feePortalFee').value),
+    installments: [1, 2, 3, 4].map(n => ({
+      amount: toNum($(`feeInst${n}Amount`).value),
+      deadline: $(`feeInst${n}Deadline`).value
+    }))
+  };
+  const result = await apiCall('saveClassFee', { classFee: classFee, actorRole: currentActorRole() });
+  if (result.success) {
+    alert(result.message);
+    STATE.classFees = result.classFees || STATE.classFees;
+    renderFeeScheduleList();
+  }
+}
+
+async function deleteClassFee(className) {
+  if (!confirm(`Remove the fee schedule for ${className}?`)) return;
+  const result = await apiCall('deleteClassFee', { className: className, actorRole: currentActorRole() });
+  if (result.success) {
+    STATE.classFees = result.classFees || {};
+    renderFeeScheduleList();
+    if ($('feeClass').value === className) loadFeeIntoForm(className);
+  }
+}
+
+function renderFeeScheduleList() {
+  const wrap = $('feeScheduleList');
+  if (!wrap) return;
+  const classes = Object.keys(STATE.classFees);
+  if (!classes.length) { wrap.innerHTML = '<p class="muted">No class fee schedules set yet.</p>'; return; }
+
+  wrap.innerHTML = classes.sort((a, b) => GRADE_LEVELS.indexOf(a) - GRADE_LEVELS.indexOf(b)).map(cls => {
+    const f = STATE.classFees[cls];
+    const instSummary = f.installments.map((i, idx) => `${idx + 1}: ${formatMoney(i.amount, f.currency)}${i.deadline ? ' (due ' + esc(i.deadline) + ')' : ''}`).join(' • ');
+    return `<div class="item" style="align-items:flex-start;">
+      <div>
+        <b>${esc(cls)}</b><br>
+        <span class="muted">Registration: ${formatMoney(f.registrationFee, f.currency)}${f.registrationDeadline ? ' (due ' + esc(f.registrationDeadline) + ')' : ''} • Tuition Total: ${formatMoney(f.tuitionTotal, f.currency)}</span><br>
+        <span class="muted">Requirements: ${formatMoney(f.requirementsFee, f.currency)} • PE Suit: ${formatMoney(f.peSuitFee, f.currency)} • Portal: ${formatMoney(f.portalFee, f.currency)}</span><br>
+        <span class="muted">${instSummary}</span>
+      </div>
+      <div class="studentCardActions">
+        <button class="light" onclick="loadFeeIntoForm('${esc(cls)}')">✏️ Edit</button>
+        <button class="danger" onclick="deleteClassFee('${esc(cls)}')">🗑 Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Live preview under the Add-Student form's Class select — shows what the
+// student's Registration/Tuition fees will automatically be set to once
+// this class's fee schedule is on file.
+function onNewGradeChange() {
+  const preview = $('newGradeFeePreview');
+  if (!preview) return;
+  const fee = STATE.classFees[$('newGrade').value];
+  preview.textContent = fee
+    ? `Auto-assigns: Registration ${formatMoney(fee.registrationFee, fee.currency)} • Tuition Total ${formatMoney(fee.tuitionTotal, fee.currency)}`
+    : 'No fee schedule on file for this class yet — set one in the Fees tab.';
+}
    function applyAdminRoleUI() {
   const isPrincipal = isPrincipalUser();
   const isRegistrar = isRegistrarUser();
@@ -2518,11 +2713,12 @@ async function loadPermissions() {
   $('tabBtnTeachers').classList.toggle('hidden', !isPrincipal);
   $('tabBtnPermissions').classList.toggle('hidden', !isPrincipal);
   $('tabBtnSubjects').classList.toggle('hidden', !isPrincipal);
+  $('tabBtnFees').classList.toggle('hidden', !isPrincipal);
 
   const addBox = $('addStudentCollapsible');
 if (addBox) addBox.classList.toggle('hidden', !isRegistrar);
 
-   if (!isPrincipal && (STATE.adminTab === 'teachers' || STATE.adminTab === 'permissions' || STATE.adminTab === 'subjects')) {
+   if (!isPrincipal && (STATE.adminTab === 'teachers' || STATE.adminTab === 'permissions' || STATE.adminTab === 'subjects' || STATE.adminTab === 'fees')) {
     adminTab('students');
   }
 }
