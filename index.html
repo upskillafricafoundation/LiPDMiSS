@@ -1093,6 +1093,11 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         <div class="ovTableHeader"><h4>Students by Class</h4></div>
         <div id="ovClassChart"></div>
       </div>
+      <div class="ovTableCard" style="margin-bottom:26px;">
+        <div class="ovTableHeader"><h4>Dropped Students by Class</h4></div>
+        <div id="ovDroppedChart"></div>
+      </div>
+       
       <div class="ovTableCard">
         <div class="ovTableHeader">
           <h4>Recently Updated Student Records</h4>
@@ -2339,8 +2344,7 @@ function renderTeacherGradeTable() {
   const selectedClass = $('teacherClassSelect').value;
   const subject = $('teacherSubjectSelect').value;
   const year = APP_CONFIG.DEFAULT_ACADEMIC_YEAR;
-  const roster = STATE.students.filter(s => String(s.className).toLowerCase() === String(selectedClass).toLowerCase());
-
+  const roster = STATE.students.filter(s => String(s.className).toLowerCase() === String(selectedClass).toLowerCase() && s.status !== 'Dropped');
   const rows = roster.map((s, idx) => {
     const yearScores = studentSubjectsForYear(s, year);
     const existing = yearScores.find(r => String(r.subject).toLowerCase() === String(subject).toLowerCase()) || {};
@@ -2787,8 +2791,20 @@ async function deleteStudent(id) {
    async function dropStudent(id) {
   const s = STATE.students.find(x => x.id === id);
   const label = s ? `${s.name} (${s.id})` : id;
-  if (!confirm(`Drop ${label} from the school?\n\nThis clears their name, photo, DOB, guardian and contact details, disables login, and locks their grade sheet. Their ID and academic/finance history stay on file. This cannot be undone from the portal.`)) return;
-  const result = await apiCall('dropStudent', { id: id, actorRole: currentActorRole() }, { loadingMessage: 'Dropping student…' });
+  if (!confirm(`Drop ${label} from the school?\n\nThis revokes their login access only. Their personal details, grades, and financial records remain on file and stay visible to Admin. You can restore login access later using Undrop.`)) return;  const result = await apiCall('dropStudent', { id: id, actorRole: currentActorRole() }, { loadingMessage: 'Dropping student…' });
+  if (result.success) {
+    alert(result.message);
+    await loadStudents();
+    renderStudentList(STATE.studentSearchText);
+  }
+}
+
+async function undropStudent(id) {
+  const s = STATE.students.find(x => x.id === id);
+  const label = s ? `${s.name} (${s.id})` : id;
+  const newPassword = prompt(`Restore ${label}? Enter a new login password for this student:`);
+  if (!newPassword) return;
+  const result = await apiCall('undropStudent', { id: id, newPassword: newPassword, actorRole: currentActorRole() }, { loadingMessage: 'Restoring student…' });
   if (result.success) {
     alert(result.message);
     await loadStudents();
@@ -3065,11 +3081,8 @@ const yearStudents = STATE.students.filter(s =>
   }
 
      box.innerHTML = cardsHtml;
-  if (principal) {
-    renderClassPieChart();
-  } else {
-    renderClassPieChart();
-  }
+  renderClassPieChart();
+  renderDroppedPieChart();
 }
 
 function renderClassBarChart() {
@@ -3127,6 +3140,39 @@ function renderClassPieChart() {
     <div class="pieChartRow">
       <div class="pieChartSvg" style="width:180px;height:180px;border-radius:50%;background:conic-gradient(${gradientStops});box-shadow:0 6px 18px rgba(8,47,80,0.15);"></div>
       <div class="pieLegend">${legend}<div class="pieLegendItem" style="margin-top:6px;border-top:1px solid #e2e8f0;padding-top:6px;">Total: <b>${total}</b> students</div></div>
+    </div>`;
+}
+
+function renderDroppedPieChart() {
+  const el = $('ovDroppedChart');
+  if (!el) return;
+  const droppedStudents = STATE.students.filter(s =>
+    String(s.academicYear) === String(STATE.activeYear) && s.status === 'Dropped');
+  const counts = {};
+  droppedStudents.forEach(s => { counts[s.className] = (counts[s.className] || 0) + 1; });
+  const entries = Object.entries(counts).sort((a, b) => GRADE_LEVELS.indexOf(a[0]) - GRADE_LEVELS.indexOf(b[0]));
+  if (!entries.length) { el.innerHTML = '<p class="muted">No dropped students recorded for this academic year.</p>'; return; }
+
+  const total = entries.reduce((sum, [, c]) => sum + c, 0);
+  let cumulative = 0;
+  const gradientStops = entries.map(([cls, count], idx) => {
+    const color = PIE_COLORS[idx % PIE_COLORS.length];
+    const start = (cumulative / total) * 360;
+    cumulative += count;
+    const end = (cumulative / total) * 360;
+    return `${color} ${start}deg ${end}deg`;
+  }).join(', ');
+
+  const legend = entries.map(([cls, count], idx) => {
+    const color = PIE_COLORS[idx % PIE_COLORS.length];
+    const pct = ((count / total) * 100).toFixed(1);
+    return `<div class="pieLegendItem"><span class="pieLegendSwatch" style="background:${color};"></span>${esc(cls)}: <b>${count}</b> (${pct}%)</div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="pieChartRow">
+      <div class="pieChartSvg" style="width:180px;height:180px;border-radius:50%;background:conic-gradient(${gradientStops});box-shadow:0 6px 18px rgba(8,47,80,0.15);"></div>
+      <div class="pieLegend">${legend}<div class="pieLegendItem" style="margin-top:6px;border-top:1px solid #e2e8f0;padding-top:6px;">Total: <b>${total}</b> dropped</div></div>
     </div>`;
 }
    
