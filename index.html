@@ -632,7 +632,45 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 .a4Footer { text-align:center; font-size:10px; color:#666; border-top:1px solid #ccc; padding-top:8px; margin-top:8px; }
 .a4SignRow { display:flex; justify-content:space-between; margin-top:40px; font-size:11px; }
 .a4SignRow div { width:45%; border-top:1px solid #111; text-align:center; padding-top:4px; }
-/* ===================== REPORT CARD — EDIT.org style template ===================== */
+/* ===================== PAYMENT RECEIPT CARD (mini, 3-per-landscape-page) ===================== */
+.receiptPrintGrid { display:flex; flex-wrap:wrap; gap:8mm; justify-content:flex-start; align-items:flex-start; }
+.receiptCard {
+  width:100%; max-width:400px; background:#fff; border:1px solid #cbd5e1; border-radius:10px;
+  padding:18px 20px; font-family:Arial, sans-serif; color:#172536; box-shadow:0 4px 14px rgba(0,0,0,0.06);
+}
+.receiptSuccessBanner { text-align:center; padding:6px 0 4px; }
+.receiptCheckCircle {
+  width:44px; height:44px; border-radius:50%; border:3px solid #15803d; color:#15803d;
+  display:inline-flex; align-items:center; justify-content:center; font-size:22px; font-weight:900;
+}
+.receiptHeaderRule { border-top:2px solid #103db8; margin:10px 0 12px; }
+.receiptSchoolHead { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.receiptSchoolHead img { width:36px; height:36px; object-fit:contain; }
+.receiptSchoolName { font-weight:900; font-size:12.5px; color:#082f50; line-height:1.2; }
+.receiptSchoolMotto { font-size:9px; color:#8a7a3a; font-weight:700; }
+.receiptTitle { text-align:center; font-weight:800; font-size:14px; color:#334155; letter-spacing:1px; margin-bottom:10px; }
+.receiptMetaRow { display:flex; justify-content:space-between; font-size:11px; margin-bottom:10px; }
+.receiptMetaRow small { display:block; color:#64748b; font-weight:700; margin-bottom:2px; }
+.receiptRowsWrap { border-top:1px solid #e2e8f0; }
+.receiptRow {
+  display:grid; grid-template-columns:20px 1.3fr 1fr auto; align-items:center; gap:8px;
+  border-bottom:1px solid #e2e8f0; padding:8px 0; font-size:11px;
+}
+.receiptRowCheck {
+  width:18px; height:18px; border-radius:50%; background:#15803d; color:#fff;
+  display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900;
+}
+.receiptRowLabel { font-weight:700; }
+.receiptRowMerchant small { display:block; color:#94a3b8; font-size:9px; }
+.receiptRowAmount { text-align:right; font-weight:800; white-space:nowrap; }
+.receiptTotalRow { display:flex; justify-content:space-between; font-weight:900; font-size:13px; padding:12px 0 4px; }
+.receiptFooterNote { font-size:9px; color:#94a3b8; text-align:center; margin-top:6px; }
+
+@media print {
+  .receiptCard { width:86mm; box-shadow:none; break-inside:avoid; }
+  .receiptPrintGrid .receiptCard:nth-child(3n) { break-after: page; }
+}
+   /* ===================== REPORT CARD — EDIT.org style template ===================== */
 /* ===================== REPORT CARD — TWO-PAGE (FRONT & BACK) TEMPLATE ===================== */
 .reportCardPage {
   background:#fdf6d8; max-width:850px; margin:0 auto 20px; padding:30px 34px;
@@ -1053,12 +1091,15 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 
     <!-- STUDENTS TAB -->
     <div id="studentsTab" class="hidden">
-           <div class="directoryHeader">
+      <div class="directoryHeader">
         <h3>📋 Enrolled Students (<span id="studentCount">0</span>)</h3>
-        <label class="studentSearch">
-          <span>Search Student:</span>
-          <input id="studentSearch" type="search" placeholder="Search by name, ID, or class..." oninput="searchStudents(this.value)">
-        </label>
+        <div class="dashActions">
+          <button class="light" onclick="printReceiptCards(getFilteredSortedStudents(STATE.studentSearchText || ''))">🧾 Print Receipts (3/page)</button>
+          <label class="studentSearch">
+            <span>Search Student:</span>
+            <input id="studentSearch" type="search" placeholder="Search by name, ID, or class..." oninput="searchStudents(this.value)">
+          </label>
+        </div>
       </div>
         <div id="studentList"></div>
       <div id="studentPaginationBar" class="paginationBar"></div>
@@ -1276,8 +1317,14 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         <label>3rd Installment<input id="inst3" type="number" min="0" step="0.01" placeholder="0.00"></label>
         <label>4th Installment<input id="inst4" type="number" min="0" step="0.01" placeholder="0.00"></label>
       </div>
-      <label>Other Payments (misc. fees, materials, etc.)<input id="otherPayments" type="number" min="0" step="0.01" placeholder="0.00"></label>
-      <div id="financeCalc" class="financeCalc"></div>
+      <h4 class="semTitle">Additional Fees</h4>
+      <div class="installmentGrid">
+        <label>Requirements Fee<input id="requirementsFee" type="number" min="0" step="0.01" placeholder="0.00"></label>
+        <label>PE Suit Fee<input id="peSuitFee" type="number" min="0" step="0.01" placeholder="0.00"></label>
+        <label>Portal Fee<input id="portalFee" type="number" min="0" step="0.01" placeholder="0.00"></label>
+        <label>Other Payments (misc.)<input id="otherPayments" type="number" min="0" step="0.01" placeholder="0.00"></label>
+      </div>
+       <div id="financeCalc" class="financeCalc"></div>
       <p id="financeRoleNotice" class="financeRoleNotice hidden">🔒 View-only: Admin accounts cannot edit financial records. Contact the Registrar to record a transaction.</p>
       <div class="financeActions">
         <label class="check"><input id="registrationPaid" type="checkbox"> Registration paid (one-time)</label>
@@ -2019,49 +2066,93 @@ async function downloadReportCardPdf() {
   }
 }
    
-function renderPaymentSheet(s) {
-  const f = s.finance || {};
-  const installments = f.installments || [0, 0, 0, 0];
-  const paidSum = installments.reduce((a, b) => a + toNum(b), 0);
-  const balance = Math.max(0, toNum(f.tuitionTotal) - paidSum);
-
-  $('paymentPrintable').innerHTML = `
-    <div class="a4Sheet">
-      <div class="a4Header">
-        <p class="a4School">${esc(APP_CONFIG.SCHOOL_NAME)}</p>
-        <p class="a4Motto">${esc(APP_CONFIG.MOTTO)}</p>
-        <p class="a4DocTitle">PAYMENT RECORD</p>
-      </div>
-
-      <table class="a4MetaTable">
-        <tr><td class="a4Label">Full Name</td><td>${esc(s.name)}</td><td class="a4Label">Student ID</td><td>${esc(s.id)}</td></tr>
-        <tr><td class="a4Label">Class / Grade</td><td>${esc(s.className)}</td><td class="a4Label">Academic Year</td><td>${esc(s.academicYear)}</td></tr>
-      </table>
-
-      <table class="a4SummaryTable">
-        <tr><td class="a4Label">Registration Fee</td><td>${formatMoney(f.registrationFee, f.currency)}</td></tr>
-        <tr><td class="a4Label">Registration Status</td><td class="${f.registrationPaid ? '' : 'a4Fail'}">${f.registrationPaid ? 'PAID' : 'UNPAID'}</td></tr>
-        <tr><td class="a4Label">Registration Date</td><td>${esc(f.registrationDate) || '—'}</td></tr>
-        <tr><td class="a4Label">Tuition Total</td><td>${formatMoney(f.tuitionTotal, f.currency)}</td></tr>
-        <tr><td class="a4Label">1st Installment</td><td>${formatMoney(installments[0], f.currency)}</td></tr>
-        <tr><td class="a4Label">2nd Installment</td><td>${formatMoney(installments[1], f.currency)}</td></tr>
-        <tr><td class="a4Label">3rd Installment</td><td>${formatMoney(installments[2], f.currency)}</td></tr>
-        <tr><td class="a4Label">4th Installment</td><td>${formatMoney(installments[3], f.currency)}</td></tr>
-        <tr><td class="a4Label">Other Payments</td><td>${formatMoney(f.otherPayments, f.currency)}</td></tr>
-        <tr><td class="a4Label">Total Paid</td><td>${formatMoney(paidSum, f.currency)}</td></tr>
-        <tr><td class="a4Label">Balance Remaining</td><td class="${balance > 0 ? 'a4Fail' : ''}">${formatMoney(balance, f.currency)}</td></tr>
-      </table>
-
-      <p class="muted" style="font-size:11px;">Payments are record-only; no payment is processed online on this website.</p>
-
-      <div class="a4SignRow">
-        <div>Registrar's Signature</div>
-        <div>Date</div>
-      </div>
-
-      <div class="a4Footer">Generated ${new Date().toLocaleDateString()} • LiPDMiSS Student Portal</div>
+function buildReceiptRow(label, amount, currency) {
+  if (!amount || Number(amount) <= 0) return '';
+  return `
+    <div class="receiptRow">
+      <div class="receiptRowCheck">✓</div>
+      <div class="receiptRowLabel">${esc(label)}</div>
+      <div class="receiptRowMerchant"><small>School</small>${esc(APP_CONFIG.SCHOOL_NAME)}</div>
+      <div class="receiptRowAmount">${formatMoney(amount, currency)}</div>
     </div>`;
 }
+
+function buildReceiptRow(label, amount, currency) {
+  if (!amount || Number(amount) <= 0) return '';
+  return `
+    <div class="receiptRow">
+      <div class="receiptRowCheck">✓</div>
+      <div class="receiptRowLabel">${esc(label)}</div>
+      <div class="receiptRowMerchant"><small>School</small>${esc(APP_CONFIG.SCHOOL_NAME)}</div>
+      <div class="receiptRowAmount">${formatMoney(amount, currency)}</div>
+    </div>`;
+}
+
+function buildReceiptCardHtml(s) {
+  const f = s.finance || {};
+  const currency = f.currency || 'USD';
+  const installments = f.installments || [0, 0, 0, 0];
+  const rows = [];
+
+  if (f.registrationPaid) rows.push(buildReceiptRow('Registration Fee', f.registrationFee, currency));
+  rows.push(buildReceiptRow('Requirements Fee', f.requirementsFee, currency));
+  rows.push(buildReceiptRow('PE Suit Fee', f.peSuitFee, currency));
+  rows.push(buildReceiptRow('Portal Fee', f.portalFee, currency));
+  ['1st', '2nd', '3rd', '4th'].forEach((ord, i) => {
+    rows.push(buildReceiptRow(`${ord} Tuition Installment`, installments[i], currency));
+  });
+  rows.push(buildReceiptRow('Other Payments', f.otherPayments, currency));
+
+  const rowsHtml = rows.join('') || `<p class="muted" style="padding:10px 0;">No payments recorded yet.</p>`;
+
+  const totalProcessed =
+    (f.registrationPaid ? toNum(f.registrationFee) : 0) +
+    toNum(f.requirementsFee) + toNum(f.peSuitFee) + toNum(f.portalFee) +
+    installments.reduce((a, b) => a + toNum(b), 0) +
+    toNum(f.otherPayments);
+
+  return `
+    <div class="receiptCard">
+      <div class="receiptSuccessBanner"><div class="receiptCheckCircle">✓</div></div>
+      <div class="receiptHeaderRule"></div>
+      <div class="receiptSchoolHead">
+        <img src="assets/lipdmiss-logo.png" alt="Logo" onerror="this.style.display='none'">
+        <div>
+          <div class="receiptSchoolName">${esc(APP_CONFIG.SCHOOL_NAME)}</div>
+          <div class="receiptSchoolMotto">${esc(APP_CONFIG.MOTTO)}</div>
+        </div>
+      </div>
+      <div class="receiptTitle">PAYMENT RECEIPT</div>
+      <div class="receiptMetaRow">
+        <div><small>Paid For</small><b>${esc(s.name)} (${esc(s.id)})</b></div>
+        <div><small>Date</small><b>${new Date().toLocaleDateString()}</b></div>
+      </div>
+      <div class="receiptRowsWrap">${rowsHtml}</div>
+      <div class="receiptTotalRow"><span>Total Processed:</span><b>${formatMoney(totalProcessed, currency)}</b></div>
+      <div class="receiptFooterNote">Payments are record-only; no payment is processed online on this website.</div>
+    </div>`;
+}
+
+function renderPaymentSheet(s) {
+  $('paymentPrintable').innerHTML = `<div class="receiptPrintGrid">${buildReceiptCardHtml(s)}</div>`;
+}
+
+// Batch print: lays receipts out 3 across, forcing a page break after
+// every 3rd card so each landscape A4 sheet holds exactly 3 receipts.
+function printReceiptCards(students) {
+  const list = (students || []).filter(Boolean);
+  if (!list.length) { alert('No students to print receipts for.'); return; }
+  const cardsHtml = list.map(s => buildReceiptCardHtml(s)).join('');
+  const styles = Array.from(document.querySelectorAll('style')).map(el => el.outerHTML).join('');
+  const printWin = window.open('', '_blank');
+  printWin.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Payment Receipts</title>${styles}
+    <style>@page { size: A4 landscape; margin: 8mm; } body{background:#fff;margin:0;padding:10mm;}</style>
+  </head><body><div class="receiptPrintGrid">${cardsHtml}</div></body></html>`);
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => { printWin.print(); }, 400);
+}
+
 async function refreshUnreadMessageCount() {
   const who = currentInboxIdentity();
   const res = await apiCall('getMessages', { recipientType: who.type, recipientId: who.id }, { silent: true });
@@ -2397,7 +2488,7 @@ function buildStudentTableHtmlFinance(items) {
          <td class="studentCardActions">
           <button class="light" data-action="editStudent" data-id="${esc(s.id)}">✏️</button>
           <button class="light" data-action="manageFinance" data-id="${esc(s.id)}">💳</button>
-          <button class="light" data-action="toggleLock" data-id="${esc(s.id)}" data-locked="${s.gradeLocked}">${s.gradeLocked ? '🔓' : '🔒'}</button>
+          <button class="light" data-action="printReceipt" data-id="${esc(s.id)}">🧾</button>          <button class="light" data-action="toggleLock" data-id="${esc(s.id)}" data-locked="${s.gradeLocked}">${s.gradeLocked ? '🔓' : '🔒'}</button>
           <button class="danger" data-action="dropStudent" data-id="${esc(s.id)}">🚫 Drop</button>
           <button class="danger" data-action="deleteStudent" data-id="${esc(s.id)}">🗑</button>
         </td>
@@ -3089,6 +3180,9 @@ function manageFinance(id) {
   $('inst3').value = inst[2] || 0;
   $('inst4').value = inst[3] || 0;
   $('otherPayments').value = f.otherPayments || 0;
+  $('requirementsFee').value = f.requirementsFee || 0;
+  $('peSuitFee').value = f.peSuitFee || 0;
+  $('portalFee').value = f.portalFee || 0;
   $('registrationPaid').checked = !!f.registrationPaid;
 
   const editable = isRegistrarUser();
@@ -3107,10 +3201,14 @@ function renderFinanceCalc() {
   const balance = Math.max(0, tuitionTotal - paid);
   const currency = $('currency').value || 'USD';
   const otherPayments = toNum($('otherPayments').value);
+  const requirementsFee = toNum($('requirementsFee').value);
+  const peSuitFee = toNum($('peSuitFee').value);
+  const portalFee = toNum($('portalFee').value);
+  const additionalFees = otherPayments + requirementsFee + peSuitFee + portalFee;
   $('financeCalc').innerHTML = `
     <div><span class="muted">Total Paid (Tuition):</span> <b>${formatMoney(paid, currency)}</b></div>
     <div><span class="muted">Balance Remaining:</span> <b class="${balance > 0 ? 'fail' : 'pass'}">${formatMoney(balance, currency)}</b></div>
-    <div><span class="muted">Other Payments Recorded:</span> <b>${formatMoney(otherPayments, currency)}</b></div>`;
+    <div><span class="muted">Additional Fees Recorded:</span> <b>${formatMoney(additionalFees, currency)}</b></div>`;
 }
 
 async function saveFinance() {
@@ -3121,7 +3219,10 @@ async function saveFinance() {
     tuitionTotal: toNum($('tuitionTotal').value),
     currency: $('currency').value.trim() || 'USD',
     installments: [toNum($('inst1').value), toNum($('inst2').value), toNum($('inst3').value), toNum($('inst4').value)],
-    otherPayments: toNum($('otherPayments').value)
+    otherPayments: toNum($('otherPayments').value),
+    requirementsFee: toNum($('requirementsFee').value),
+    peSuitFee: toNum($('peSuitFee').value),
+    portalFee: toNum($('portalFee').value)
   };
   const actorRole = (STATE.currentUser && STATE.currentUser.data && STATE.currentUser.data.role) || '';
   const result = await apiCall('saveFinance', { id: STATE.financeStudentId, finance: finance, actorRole: actorRole });
@@ -3456,7 +3557,7 @@ function handleDelegatedClick(e) {
   switch (action) {
     case 'manageScores': manageScores(id); break;
     case 'manageFinance': manageFinance(id); break;
-    case 'editStudent': editStudent(id); break;
+    case 'printReceipt': printReceiptCards([STATE.students.find(x => x.id === id)]); break;    case 'editStudent': editStudent(id); break;
     case 'deleteStudent': deleteStudent(id); break;
     case 'dropStudent': dropStudent(id); break;    case 'toggleLock': toggleLock(id, btn.dataset.locked === 'true'); break;
     case 'editTeacher': editTeacher(id); break;
@@ -3480,7 +3581,7 @@ function handleDelegatedClick(e) {
 
 document.addEventListener('DOMContentLoaded', () => {
   document.body.addEventListener('click', handleDelegatedClick);
-  ['registrationFee', 'tuitionTotal', 'inst1', 'inst2', 'inst3', 'inst4', 'currency', 'otherPayments'].forEach(id => {    $(id).addEventListener('input', renderFinanceCalc);
+    ['registrationFee', 'tuitionTotal', 'inst1', 'inst2', 'inst3', 'inst4', 'currency', 'otherPayments', 'requirementsFee', 'peSuitFee', 'portalFee'].forEach(id => {    $(id).addEventListener('input', renderFinanceCalc);
   });
   onGatewayUserTypeChange();
   show('gateway');
