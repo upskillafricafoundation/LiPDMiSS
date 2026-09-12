@@ -681,7 +681,15 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 .receiptFooterNote { font-size:9px; color:#94a3b8; text-align:center; margin-top:6px; }
 
 @media print {
-  .receiptCard { width:86mm; box-shadow:none; break-inside:avoid; }
+  .receiptPrintGrid { gap:5mm; }
+  .receiptCard {
+    width:88mm; flex:0 0 88mm;
+    box-shadow:none; border-color:#94a3b8;
+    padding:12px 14px; break-inside:avoid;
+  }
+  .receiptCard .receiptRow { padding:6px 0; font-size:10px; }
+  .receiptCard .receiptTitle { font-size:12.5px; margin-bottom:8px; }
+  .receiptCard .receiptTopSchoolName { font-size:12.5px; }
   .receiptPrintGrid .receiptCard:nth-child(3n) { break-after: page; }
 }
    /* ===================== REPORT CARD — EDIT.org style template ===================== */
@@ -957,8 +965,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         </table>
       </div>
             <div class="teacherTableFooter">
-        <p class="muted"><small>🔒 Gray badges with lock icons indicate previously submitted grades (locked). Only empty inputs for Admin-opened periods can be filled.</small></p>
-        <button onclick="teacherSaveGrades()">💾 Submit Class Grades</button>
+        <p class="muted"><small>🔓 Open periods can be entered or edited freely. 🔒 Once Admin closes a period, its scores become view-only and cannot be changed.</small></p>        <button onclick="teacherSaveGrades()">💾 Submit Class Grades</button>
       </div>
     </div>
 
@@ -1108,7 +1115,16 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       <div class="directoryHeader">
         <h3>📋 Enrolled Students (<span id="studentCount">0</span>)</h3>
         <div class="dashActions">
-          <button class="light" onclick="printReceiptCards(getFilteredSortedStudents(STATE.studentSearchText || ''))">🧾 Print Receipts (3/page)</button>
+          <label>Print Category:
+            <select id="receiptCategorySelect" onchange="onReceiptCategoryChange()">
+              <option value="all">All Students</option>
+              <option value="class">By Class</option>
+              <option value="overdue">Overdue (Balance Due)</option>
+              <option value="cleared">Tuition Cleared</option>
+            </select>
+          </label>
+          <select id="receiptClassSelect" class="hidden"></select>
+          <button class="light" onclick="printReceiptsByCategory()">🧾 Print Receipts (3/page)</button>
           <label class="studentSearch">
             <span>Search Student:</span>
             <input id="studentSearch" type="search" placeholder="Search by name, ID, or class..." oninput="searchStudents(this.value)">
@@ -2156,6 +2172,64 @@ function renderPaymentSheet(s) {
   $('paymentPrintable').innerHTML = `<div class="receiptPrintGrid">${buildReceiptCardHtml(s)}</div>`;
 }
 
+function receiptCategoryEligibleStudents() {
+  // Active-year students only, excluding dropped records — mirrors the
+  // same base filter used everywhere else in the admin Students view.
+  return STATE.students.filter(s =>
+    String(s.academicYear) === String(STATE.activeYear) && s.status !== 'Dropped'
+  );
+}
+
+function studentBalance(s) {
+  const f = s.finance || {};
+  const installments = f.installments || [0, 0, 0, 0];
+  const paid = installments.reduce((a, b) => a + toNum(b), 0);
+  return Math.max(0, toNum(f.tuitionTotal) - paid);
+}
+
+function populateReceiptClassSelect() {
+  const sel = $('receiptClassSelect');
+  const classesPresent = Array.from(new Set(receiptCategoryEligibleStudents().map(s => s.className)));
+  const ordered = GRADE_LEVELS.filter(g => classesPresent.includes(g));
+  sel.innerHTML = ordered.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('')
+    || '<option value="">No classes found</option>';
+}
+
+function onReceiptCategoryChange() {
+  const cat = $('receiptCategorySelect').value;
+  const classSel = $('receiptClassSelect');
+  if (cat === 'class') {
+    populateReceiptClassSelect();
+    classSel.classList.remove('hidden');
+  } else {
+    classSel.classList.add('hidden');
+  }
+}
+
+function printReceiptsByCategory() {
+  const cat = $('receiptCategorySelect').value;
+  const pool = receiptCategoryEligibleStudents();
+  let selected = [];
+
+  if (cat === 'all') {
+    selected = pool;
+  } else if (cat === 'class') {
+    const cls = $('receiptClassSelect').value;
+    if (!cls) { alert('No class selected.'); return; }
+    selected = pool.filter(s => String(s.className).toLowerCase() === cls.toLowerCase());
+  } else if (cat === 'overdue') {
+    selected = pool.filter(s => studentBalance(s) > 0);
+  } else if (cat === 'cleared') {
+    selected = pool.filter(s => toNum((s.finance || {}).tuitionTotal) > 0 && studentBalance(s) <= 0);
+  }
+
+  if (!selected.length) {
+    alert('No students match this category for the active academic year.');
+    return;
+  }
+  printReceiptCards(selected);
+}
+   
 // Batch print: lays receipts out 3 across, forcing a page break after
 // every 3rd card so each landscape A4 sheet holds exactly 3 receipts.
 function printReceiptCards(students) {
@@ -2165,8 +2239,7 @@ function printReceiptCards(students) {
   const styles = Array.from(document.querySelectorAll('style')).map(el => el.outerHTML).join('');
   const printWin = window.open('', '_blank');
   printWin.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Payment Receipts</title>${styles}
-    <style>@page { size: A4 landscape; margin: 8mm; } body{background:#fff;margin:0;padding:10mm;}</style>
-  </head><body><div class="receiptPrintGrid">${cardsHtml}</div></body></html>`);
+    <style>@page { size: A4 landscape; margin: 6mm; } body{background:#fff;margin:0;padding:4mm;}</style>  </head><body><div class="receiptPrintGrid">${cardsHtml}</div></body></html>`);
   printWin.document.close();
   printWin.focus();
   setTimeout(() => { printWin.print(); }, 400);
@@ -2273,11 +2346,16 @@ function renderTeacherGradeTable() {
     const existing = yearScores.find(r => String(r.subject).toLowerCase() === String(subject).toLowerCase()) || {};
     const cells = PERIOD_KEYS.map(k => {
       const val = existing[k];
-      const locked = val !== undefined && val !== null && val !== '';
+      const hasVal = val !== undefined && val !== null && val !== '';
       const isOpen = !!STATE.permissions[k];
-      if (locked) return `<td><span class="lockedScore">🔒 ${val}</span></td>`;
-      if (!isOpen) return `<td><span class="disabledCell">Closed</span></td>`;
-      return `<td><input type="number" min="0" max="100" data-student="${esc(s.id)}" data-key="${k}" placeholder="0-100"></td>`;
+      if (isOpen) {
+        // Open period: always editable, pre-filled with the existing score if any.
+        return `<td><input type="number" min="0" max="100" data-student="${esc(s.id)}" data-key="${k}" value="${hasVal ? esc(val) : ''}" placeholder="0-100"></td>`;
+      }
+      // Closed period: view-only, whether or not a score was ever entered.
+      return hasVal
+        ? `<td><span class="lockedScore">🔒 ${val}</span></td>`
+        : `<td><span class="disabledCell">Closed</span></td>`;
     }).join('');
     const yearlyAvg = studentSubjectsForYear(s, year).length ? studentYearlyAverage(s, year) : 0;
     const g = gradeFor(yearlyAvg);
