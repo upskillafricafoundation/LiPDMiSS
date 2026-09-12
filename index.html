@@ -995,6 +995,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         <p class="muted"><small>🔓 Open periods can be entered or edited freely. 🔒 Once Admin closes a period, its scores become view-only and cannot be changed.</small></p>       
 <button onclick="teacherSaveGrades()">💾 Submit</button>      </div>
     </div>
+  </section>
 
    <section id="teacherLessonPlan" class="page">
   <div class="toolbar">
@@ -1124,13 +1125,13 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       <input id="stayLoggedInToggle" type="checkbox" onchange="toggleStayLoggedIn(this.checked)"> Stay logged in on this device
     </label>
     <h3>My Profile (View Only)</h3>
-    <table class="profileInfoTable" id="studentsProfileTable"></table>
+    <table class="profileInfoTable" id="studentSettingsProfileTable"></table>
     <h3 style="margin-top:22px;">Change Password</h3>
     <div class="grid">
-      <label>New Password<input id="studentsNewPassword" type="password" placeholder="New password"></label>
-      <label>Confirm New Password<input id="studentsConfirmPassword" type="password" placeholder="Confirm new password"></label>
+      <label>New Password<input id="studentSettingsNewPassword" type="password" placeholder="New password"></label>
+      <label>Confirm New Password<input id="studentSettingsConfirmPassword" type="password" placeholder="Confirm new password"></label>
     </div>
-    <button onclick="saveStudents()">💾 Change Password</button>
+    <button onclick="saveStudentSettings()">💾 Change Password</button>
   </div>
 </section>
 
@@ -1644,7 +1645,44 @@ async function installApp() {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
-   
+
+const STAY_LOGGED_KEY = 'lipdmiss_stayLoggedIn';
+
+function toggleStayLoggedIn(checked) {
+  if (checked && STATE.lastLoginCreds) {
+    localStorage.setItem(STAY_LOGGED_KEY, JSON.stringify(STATE.lastLoginCreds));
+  } else {
+    localStorage.removeItem(STAY_LOGGED_KEY);
+  }
+}
+
+async function attemptAutoLogin() {
+  const raw = localStorage.getItem(STAY_LOGGED_KEY);
+  if (!raw) return false;
+  let saved;
+  try { saved = JSON.parse(raw); } catch (e) { localStorage.removeItem(STAY_LOGGED_KEY); return false; }
+  if (!saved || !saved.username || !saved.password || !saved.userType) return false;
+
+  const payload = { username: saved.username, password: saved.password, userType: saved.userType };
+  if (saved.userType === 'admin') payload.email = saved.email;
+
+  const result = await apiCall('login', payload, { silent: true });
+  if (!result.success) { localStorage.removeItem(STAY_LOGGED_KEY); return false; }
+
+  STATE.lastLoginCreds = saved;
+  if (saved.userType === 'admin') {
+    STATE.currentUser = { userType: 'admin', data: result.admin };
+    await enterAdminPortal();
+  } else if (saved.userType === 'teacher') {
+    STATE.currentUser = { userType: 'teacher', data: result.teacher };
+    await enterTeacherPortal();
+  } else {
+    STATE.currentUser = { userType: 'student', data: result.student };
+    await enterStudentPortal();
+  }
+  return true;
+}
+
 const GRADE_LEVELS = [
   'Nursery', 'Kindergarten 1', 'Kindergarten 2',
   'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6',
@@ -1848,6 +1886,7 @@ $('mainWrap').classList.toggle('hidden', !isGateway);
 }
 
 function logout() {
+  localStorage.removeItem(STAY_LOGGED_KEY);
   STATE.currentUser = null;
   STATE.editingStudentId = null;
   STATE.editingTeacherId = null;
@@ -1937,6 +1976,9 @@ async function gatewayLogin() {
     msgEl.textContent = result.message || 'Login failed.';
     return;
   }
+
+  STATE.lastLoginCreds = { username, password, userType };
+  if (userType === 'admin') STATE.lastLoginCreds.email = email;
 
   msgEl.className = 'gwMsg successMsg';
   msgEl.textContent = 'Login successful — loading your portal...';
@@ -3455,17 +3497,17 @@ const SIDEBAR_CONFIG = {
   ],
   teacher: [
     { icon:'📊', label:'Dashboard', action:() => show('teacher') },
+    { icon:'📝', label:'Lesson Plans', action:() => { show('teacherLessonPlan'); populateLessonPlanSelectors(); loadMyLessonPlans(); } },
     { icon:'✉️', label:'Messages', action:() => renderMessagesPage() },
     { icon:'⚙️', label:'Settings', action:() => { show('teacherSettings'); renderTeacherSettingsForm(); } }
-    { icon:'📝', label:'Lesson Plans', action:() => { show('teacherLessonPlan'); populateLessonPlanSelectors(); loadMyLessonPlans(); } },
   ],
-student: [
-  { icon:'📊', label:'Dashboard', action:() => show('student') },
-  { icon:'📝', label:'Grade Sheet', action:() => show('studentGrades') },
-  { icon:'💳', label:'Payment Record', action:() => show('studentFinance') },
-  { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }   
-  { icon:'⚙️', label:'Settings', action:() => { show('studentSettings'); renderStudentSettingsForm(); } }
-]
+  student: [
+    { icon:'📊', label:'Dashboard', action:() => show('student') },
+    { icon:'📝', label:'Grade Sheet', action:() => show('studentGrades') },
+    { icon:'💳', label:'Payment Record', action:() => show('studentFinance') },
+    { icon:'✉️', label:'Messages', action:() => renderMessagesPage() },
+    { icon:'⚙️', label:'Settings', action:() => { show('studentSettings'); renderStudentSettingsForm(); } }
+  ]
 };
 
 function currentPortalRoleKey() {
@@ -4366,7 +4408,7 @@ function handleDelegatedClick(e) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   document.body.addEventListener('click', handleDelegatedClick);
     ['entranceFee', 'registrationFee', 'tuitionTotal', 'inst1', 'inst2', 'inst3', 'inst4', 'currency', 'otherPayments', 'requirementsFee', 'peSuitFee', 'portalFee'].forEach(id => {    $(id).addEventListener('input', renderFinanceCalc);
   });
@@ -4374,7 +4416,8 @@ document.addEventListener('DOMContentLoaded', () => {
     $(id).addEventListener('change', renderFinanceCalc);
   });
   onGatewayUserTypeChange();
-  show('gateway');
+  const autoLoggedIn = await attemptAutoLogin();
+  if (!autoLoggedIn) show('gateway');
 });
 </script>
 </body>
