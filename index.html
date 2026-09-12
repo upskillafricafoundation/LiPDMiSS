@@ -943,6 +943,16 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       <div id="teacherPermissionsStatus" class="permBadgesGrid"></div>
     </div>
 
+         <div class="statCardsRow" id="teacherStatCards"></div>
+    <div class="ovTableCard" style="margin-bottom:20px;">
+      <div class="ovTableHeader"><h4>My Classes — Student Distribution</h4></div>
+      <div id="teacherClassPieChart"></div>
+    </div>
+    <div class="ovTableCard" style="margin-bottom:20px;">
+      <div class="ovTableHeader"><h4>Top 3 Students Per Class (by grade in your subject)</h4></div>
+      <div id="teacherTopStudentsChart"></div>
+    </div>
+
     <div class="box">
       <div class="tableControls">
         <div>
@@ -954,9 +964,6 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
           <label>Select Subject to Grade:
             <select id="teacherSubjectSelect" onchange="renderTeacherGradeTable()"></select>
           </label>
-        </div>
-        <div>
-          <button onclick="teacherSaveGrades()">💾 Submit Class Grades</button>
         </div>
       </div>
 
@@ -982,8 +989,8 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         </table>
       </div>
             <div class="teacherTableFooter">
-        <p class="muted"><small>🔓 Open periods can be entered or edited freely. 🔒 Once Admin closes a period, its scores become view-only and cannot be changed.</small></p>        <button onclick="teacherSaveGrades()">💾 Submit Class Grades</button>
-      </div>
+        <p class="muted"><small>🔓 Open periods can be entered or edited freely. 🔒 Once Admin closes a period, its scores become view-only and cannot be changed.</small></p>       
+<button onclick="teacherSaveGrades()">💾 Submit</button>      </div>
     </div>
 
    <section id="teacherLessonPlan" class="page">
@@ -2475,6 +2482,8 @@ async function enterTeacherPortal() {
    await refreshUnreadMessageCount();
   renderSidebar();
   renderTeacherStatCards();
+renderTeacherClassPieChart();
+renderTeacherTopStudentsChart();
   show('teacher');
 }
 function populateLessonPlanSelectors() {
@@ -3717,6 +3726,64 @@ function renderTeacherStatCards() {
     <div class="statCard"><div class="statCardTop"><div class="statCardIcon">🔓</div><div><div class="statCardNum">${openPeriods}</div><div class="statCardLabel">Open Grading Periods</div></div></div></div>`;
 }
 
+   function renderTeacherClassPieChart() {
+  const el = $('teacherClassPieChart');
+  if (!el) return;
+  const t = STATE.currentUser.data;
+  const classes = (t.assignments || []).map(a => a.class);
+  const counts = {};
+  classes.forEach(c => {
+    counts[c] = STATE.students.filter(s =>
+      String(s.className).toLowerCase() === c.toLowerCase() && s.status !== 'Dropped').length;
+  });
+  const entries = Object.entries(counts);
+  if (!entries.length) { el.innerHTML = '<p class="muted">No assigned classes.</p>'; return; }
+  const total = entries.reduce((a, [, c]) => a + c, 0) || 1;
+  let cum = 0;
+  const stops = entries.map(([cls, count], idx) => {
+    const color = PIE_COLORS[idx % PIE_COLORS.length];
+    const start = (cum / total) * 360; cum += count; const end = (cum / total) * 360;
+    return `${color} ${start}deg ${end}deg`;
+  }).join(', ');
+  const legend = entries.map(([cls, count], idx) => {
+    const color = PIE_COLORS[idx % PIE_COLORS.length];
+    const pct = ((count / total) * 100).toFixed(1);
+    return `<div class="pieLegendItem"><span class="pieLegendSwatch" style="background:${color};"></span>${esc(cls)}: <b>${count}</b> (${pct}%)</div>`;
+  }).join('');
+  el.innerHTML = `<div class="pieChartRow"><div class="pieChartSvg" style="width:160px;height:160px;border-radius:50%;background:conic-gradient(${stops});box-shadow:0 6px 18px rgba(8,47,80,0.15);"></div><div class="pieLegend">${legend}</div></div>`;
+}
+
+function renderTeacherTopStudentsChart() {
+  const el = $('teacherTopStudentsChart');
+  if (!el) return;
+  const t = STATE.currentUser.data;
+  const year = APP_CONFIG.DEFAULT_ACADEMIC_YEAR;
+  let html = '';
+  (t.assignments || []).forEach(a => {
+    const subject = (a.subjects || [])[0];
+    if (!subject) return;
+    const roster = STATE.students.filter(s =>
+      String(s.className).toLowerCase() === a.class.toLowerCase() && s.status !== 'Dropped');
+    const ranked = roster.map(s => {
+      const sub = studentSubjectsForYear(s, year).find(r => r.subject.toLowerCase() === subject.toLowerCase());
+      let avg = 0;
+      if (sub) {
+        const s1 = avgOf([sub.p1, sub.p2, sub.p3, sub.exam1]);
+        const s2 = avgOf([sub.p4, sub.p5, sub.p6, sub.exam2]);
+        avg = (s1 + s2) / 2;
+      }
+      return { name: s.name, avg: avg };
+    }).sort((x, y) => y.avg - x.avg).slice(0, 3);
+    const max = Math.max(...ranked.map(x => x.avg), 1);
+    html += `<h4 class="semTitle">${esc(a.class)} — ${esc(subject)}</h4><div class="classBarChart">`;
+    ranked.forEach(x => {
+      const h = Math.max(10, Math.round((x.avg / max) * 160));
+      html += `<div class="classBarCol"><div class="classBarValue">${x.avg.toFixed(1)}</div><div class="classBarBar" style="height:${h}px;"></div><div class="classBarLabel">${esc(x.name)}</div></div>`;
+    });
+    html += `</div>`;
+  });
+  el.innerHTML = html || '<p class="muted">No grade data yet.</p>';
+}
 // function renderStudentStatCards() {
 //   const box = $('studentStatCards');
 //   if (!box) return;
