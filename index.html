@@ -1623,6 +1623,28 @@ const APP_CONFIG = {
   MOTTO: 'FAITH • EXCELLENCE • DISCIPLINE • PURPOSE'
 };
 
+   let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.querySelectorAll('.installAppBtn').forEach(b => b.classList.remove('hidden'));
+});
+window.addEventListener('appinstalled', () => {
+  document.querySelectorAll('.installAppBtn').forEach(b => b.classList.add('hidden'));
+});
+async function installApp() {
+  if (!deferredInstallPrompt) {
+    alert("Install isn't available right now.\n\niPhone/iPad: tap Share → Add to Home Screen.\nAndroid/Chrome: look for the install icon in the address bar, or the ⋮ menu → Install app.");
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+}
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+   
 const GRADE_LEVELS = [
   'Nursery', 'Kindergarten 1', 'Kindergarten 2',
   'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6',
