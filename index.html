@@ -1510,12 +1510,16 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       </div>
        <div id="financeCalc" class="financeCalc"></div>
       <p id="financeRoleNotice" class="financeRoleNotice hidden">🔒 View-only: Admin accounts cannot edit financial records. Contact the Registrar to record a transaction.</p>
-      <div class="financeActions">
+      <div class="financeActions" style="flex-direction:column;align-items:flex-start;gap:10px;">
         <label class="check"><input id="registrationPaid" type="checkbox"> Registration paid (one-time)</label>
+        <label class="check"><input id="requirementsFeePaid" type="checkbox"> Requirements fee paid (one-time)</label>
+        <label class="check"><input id="peSuitFeePaid" type="checkbox"> PE Suit fee paid (one-time)</label>
+        <label class="check"><input id="portalFeePaid" type="checkbox"> Portal fee paid (one-time)</label>
         <div>
           <button id="financeSaveBtn" onclick="saveFinance()">Save Payment Records</button>
           <button id="financeClearBtn" class="light" onclick="clearFinance()">Clear Payment Records</button>
         </div>
+      </div>
       </div>
     </div>
     </section>
@@ -2026,8 +2030,7 @@ function renderPersonalSheet(s) {
   const best = studentBestSubject(s, s.academicYear);
   const teacherCount = classTeacherCount(s.className);
   const f = s.finance || {};
-  const paidSum = (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
-  const balanceDue = Math.max(0, toNum(f.tuitionTotal) - paidSum);
+  const balanceDue = studentBalance(s);
 
   $('personalPrintable').innerHTML = `
     <div class="sheet" style="margin:0;">
@@ -2298,9 +2301,9 @@ function buildReceiptCardHtml(s) {
   const rows = [];
 
   if (f.registrationPaid) rows.push(buildReceiptRow('Registration Fee', f.registrationFee, currency, f.registrationDate || fallbackDate));
-  rows.push(buildReceiptRow('Requirements Fee', f.requirementsFee, currency, fallbackDate));
-  rows.push(buildReceiptRow('PE Suit Fee', f.peSuitFee, currency, fallbackDate));
-  rows.push(buildReceiptRow('Portal Fee', f.portalFee, currency, fallbackDate));
+  if (f.requirementsFeePaid) rows.push(buildReceiptRow('Requirements Fee', f.requirementsFee, currency, fallbackDate));
+  if (f.peSuitFeePaid) rows.push(buildReceiptRow('PE Suit Fee', f.peSuitFee, currency, fallbackDate));
+  if (f.portalFeePaid) rows.push(buildReceiptRow('Portal Fee', f.portalFee, currency, fallbackDate));
   ['1st', '2nd', '3rd', '4th'].forEach((ord, i) => {
     rows.push(buildReceiptRow(`${ord} Tuition Installment`, installments[i], currency, fallbackDate));
   });
@@ -2310,12 +2313,14 @@ function buildReceiptCardHtml(s) {
 
   const totalPaid =
     (f.registrationPaid ? toNum(f.registrationFee) : 0) +
-    toNum(f.requirementsFee) + toNum(f.peSuitFee) + toNum(f.portalFee) +
+    (f.requirementsFeePaid ? toNum(f.requirementsFee) : 0) +
+    (f.peSuitFeePaid ? toNum(f.peSuitFee) : 0) +
+    (f.portalFeePaid ? toNum(f.portalFee) : 0) +
     installments.reduce((a, b) => a + toNum(b), 0) +
     toNum(f.otherPayments);
 
-  const totalBalance = Math.max(0, toNum(f.tuitionTotal) - installments.reduce((a, b) => a + toNum(b), 0));
-
+  // Total Balance now reflects every fee category still outstanding.
+  const totalBalance = studentBalance(s);
   return `
     <div class="receiptCard">
       <div class="receiptTopBrand">
@@ -2352,11 +2357,19 @@ function receiptCategoryEligibleStudents() {
   );
 }
 
+// Comprehensive balance across every fee category: tuition (installments
+// vs total) PLUS Registration / Requirements / PE Suit / Portal, each of
+// which counts as fully outstanding until its own "Paid" flag is set.
 function studentBalance(s) {
   const f = s.finance || {};
   const installments = f.installments || [0, 0, 0, 0];
-  const paid = installments.reduce((a, b) => a + toNum(b), 0);
-  return Math.max(0, toNum(f.tuitionTotal) - paid);
+  const tuitionPaid = installments.reduce((a, b) => a + toNum(b), 0);
+  const tuitionBalance = Math.max(0, toNum(f.tuitionTotal) - tuitionPaid);
+  const regBalance = f.registrationPaid ? 0 : toNum(f.registrationFee);
+  const reqBalance = f.requirementsFeePaid ? 0 : toNum(f.requirementsFee);
+  const peBalance = f.peSuitFeePaid ? 0 : toNum(f.peSuitFee);
+  const portalBalance = f.portalFeePaid ? 0 : toNum(f.portalFee);
+  return tuitionBalance + regBalance + reqBalance + peBalance + portalBalance;
 }
 
 function populateReceiptClassSelect() {
@@ -2844,7 +2857,7 @@ function buildStudentTableHtmlFinance(items) {
     const f = s.finance || {};
     const installments = f.installments || [0, 0, 0, 0];
     const paidSum = installments.reduce((a, b) => a + toNum(b), 0);
-    const balance = Math.max(0, toNum(f.tuitionTotal) - paidSum);
+    const balance = studentBalance(s);
     const rowId = 'grow_' + s.id.replace(/[^a-zA-Z0-9]/g, '_');
 
     return `
@@ -3412,11 +3425,7 @@ const yearStudents = STATE.students.filter(s =>
       const f = s.finance || {};
       return sum + (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
     }, 0);
-    const totalBalance = yearStudents.reduce((sum, s) => {
-      const f = s.finance || {};
-      const paid = (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
-      return sum + Math.max(0, toNum(f.tuitionTotal) - paid);
-    }, 0);
+    const totalBalance = yearStudents.reduce((sum, s) => sum + studentBalance(s), 0);
     const fullyPaidCount = yearStudents.filter(s => {
       const f = s.finance || {};
       const paid = (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
@@ -3572,8 +3581,7 @@ function buildAdminOverviewTable() {
     const yearlyAvg = studentSubjectsForYear(s, s.academicYear).length ? studentYearlyAverage(s, s.academicYear) : 0;
     const g = gradeFor(yearlyAvg);
     const f = s.finance || {};
-    const installments = f.installments || [0, 0, 0, 0];
-    const balance = Math.max(0, toNum(f.tuitionTotal) - installments.reduce((a,b)=>a+toNum(b),0));
+    const balance = studentBalance(s);
     const updated = s.updatedAt ? s.updatedAt.slice(0, 10) : '—';
 
     const metricCell = principal
@@ -3629,11 +3637,7 @@ function renderAdminStatCards() {
   } else if (isRegistrarUser()) {
     const totalBalance = STATE.students
       .filter(s => String(s.academicYear) === String(STATE.activeYear))
-      .reduce((sum, s) => {
-        const f = s.finance || {};
-        const paid = (f.installments || [0,0,0,0]).reduce((a,b)=>a+toNum(b),0);
-        return sum + Math.max(0, toNum(f.tuitionTotal) - paid);
-      }, 0);
+      .reduce((sum, s) => sum + studentBalance(s), 0);
     cards += `
     <div class="statCard">
       <div class="statCardTop"><div class="statCardIcon">💳</div><div><div class="statCardNum">${totalBalance.toLocaleString()}</div><div class="statCardLabel">Outstanding Balance</div></div></div>
@@ -3699,6 +3703,9 @@ function manageFinance(id) {
   $('peSuitFee').value = f.peSuitFee || 0;
   $('portalFee').value = f.portalFee || 0;
   $('registrationPaid').checked = !!f.registrationPaid;
+  $('requirementsFeePaid').checked = !!f.requirementsFeePaid;
+  $('peSuitFeePaid').checked = !!f.peSuitFeePaid;
+  $('portalFeePaid').checked = !!f.portalFeePaid;
 
   const editable = isRegistrarUser();
   document.querySelectorAll('#financePage input').forEach(el => el.disabled = !editable);
@@ -3713,16 +3720,24 @@ function manageFinance(id) {
 function renderFinanceCalc() {
   const tuitionTotal = toNum($('tuitionTotal').value);
   const paid = toNum($('inst1').value) + toNum($('inst2').value) + toNum($('inst3').value) + toNum($('inst4').value);
-  const balance = Math.max(0, tuitionTotal - paid);
+  const tuitionBalance = Math.max(0, tuitionTotal - paid);
   const currency = $('currency').value || 'USD';
   const otherPayments = toNum($('otherPayments').value);
+  const registrationFee = toNum($('registrationFee').value);
   const requirementsFee = toNum($('requirementsFee').value);
   const peSuitFee = toNum($('peSuitFee').value);
   const portalFee = toNum($('portalFee').value);
   const additionalFees = otherPayments + requirementsFee + peSuitFee + portalFee;
+
+  const regOutstanding = $('registrationPaid').checked ? 0 : registrationFee;
+  const reqOutstanding = $('requirementsFeePaid').checked ? 0 : requirementsFee;
+  const peOutstanding = $('peSuitFeePaid').checked ? 0 : peSuitFee;
+  const portalOutstanding = $('portalFeePaid').checked ? 0 : portalFee;
+  const totalBalance = tuitionBalance + regOutstanding + reqOutstanding + peOutstanding + portalOutstanding;
+
   $('financeCalc').innerHTML = `
     <div><span class="muted">Total Paid (Tuition):</span> <b>${formatMoney(paid, currency)}</b></div>
-    <div><span class="muted">Balance Remaining:</span> <b class="${balance > 0 ? 'fail' : 'pass'}">${formatMoney(balance, currency)}</b></div>
+    <div><span class="muted">Total Balance (All Fees):</span> <b class="${totalBalance > 0 ? 'fail' : 'pass'}">${formatMoney(totalBalance, currency)}</b></div>
     <div><span class="muted">Additional Fees Recorded:</span> <b>${formatMoney(additionalFees, currency)}</b></div>`;
 }
 
@@ -3737,7 +3752,10 @@ async function saveFinance() {
     otherPayments: toNum($('otherPayments').value),
     requirementsFee: toNum($('requirementsFee').value),
     peSuitFee: toNum($('peSuitFee').value),
-    portalFee: toNum($('portalFee').value)
+    portalFee: toNum($('portalFee').value),
+    requirementsFeePaid: $('requirementsFeePaid').checked,
+    peSuitFeePaid: $('peSuitFeePaid').checked,
+    portalFeePaid: $('portalFeePaid').checked
   };
   const actorRole = (STATE.currentUser && STATE.currentUser.data && STATE.currentUser.data.role) || '';
   const result = await apiCall('saveFinance', { id: STATE.financeStudentId, finance: finance, actorRole: actorRole });
@@ -4142,9 +4160,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.addEventListener('click', handleDelegatedClick);
     ['registrationFee', 'tuitionTotal', 'inst1', 'inst2', 'inst3', 'inst4', 'currency', 'otherPayments', 'requirementsFee', 'peSuitFee', 'portalFee'].forEach(id => {    $(id).addEventListener('input', renderFinanceCalc);
   });
+  ['registrationPaid', 'requirementsFeePaid', 'peSuitFeePaid', 'portalFeePaid'].forEach(id => {
+    $(id).addEventListener('change', renderFinanceCalc);
+  });
   onGatewayUserTypeChange();
   show('gateway');
-});
+});;
 </script>
 </body>
 </html>
