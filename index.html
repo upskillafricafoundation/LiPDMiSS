@@ -2585,8 +2585,10 @@ function buildStudentTableHtmlFinance(items) {
          <td class="studentCardActions">
           <button class="light" data-action="editStudent" data-id="${esc(s.id)}">✏️</button>
           <button class="light" data-action="manageFinance" data-id="${esc(s.id)}">💳</button>
-          <button class="light" data-action="printReceipt" data-id="${esc(s.id)}">🧾</button>          <button class="light" data-action="toggleLock" data-id="${esc(s.id)}" data-locked="${s.gradeLocked}">${s.gradeLocked ? '🔓' : '🔒'}</button>
-          <button class="danger" data-action="dropStudent" data-id="${esc(s.id)}">🚫 Drop</button>
+          <button class="light" data-action="printReceipt" data-id="${esc(s.id)}">🧾</button>
+          ${s.status === 'Dropped'
+            ? `<button class="light" data-action="undropStudent" data-id="${esc(s.id)}">↩️ Undrop</button>`
+            : `<button class="danger" data-action="dropStudent" data-id="${esc(s.id)}">🚫 Drop</button>`}
           <button class="danger" data-action="deleteStudent" data-id="${esc(s.id)}">🗑</button>
         </td>
       </tr>
@@ -2775,7 +2777,7 @@ document.querySelector('.addStudentBox').scrollIntoView({ behavior: 'smooth' });
 
 async function deleteStudent(id) {
   if (!confirm(`Delete student ${id} and all their records? This cannot be undone.`)) return;
-  const result = await apiCall('deleteStudent', { id: id }, { loadingMessage: 'Deleting student…' });
+  const result = await apiCall('deleteStudent', { id: id, actorRole: currentActorRole() }, { loadingMessage: 'Deleting student…' });
   if (result.success) {
     await loadStudents();
     renderStudentList();
@@ -2838,8 +2840,7 @@ async function saveRecord() {
   const record = { subject: subject };
   PERIOD_KEYS.forEach(k => { record[k] = $(k).value === '' ? 0 : Number($(k).value); });
 
-  const result = await apiCall('saveRecord', { id: s.id, year: STATE.activeYear, record: record });
-  if (result.success) {
+  const result = await apiCall('saveRecord', { id: s.id, year: STATE.activeYear, record: record, actorRole: currentActorRole() });  if (result.success) {
     alert(result.message);
     clearForm();
     await loadStudents();
@@ -2878,8 +2879,7 @@ function editRecord(subject) {
 
 async function deleteRecord(subject) {
   if (!confirm(`Delete the ${subject} score record for this student?`)) return;
-  const result = await apiCall('deleteRecord', { id: STATE.recordStudentId, year: STATE.activeYear, subject: subject });
-  if (result.success) {
+  const result = await apiCall('deleteRecord', { id: STATE.recordStudentId, year: STATE.activeYear, subject: subject, actorRole: currentActorRole() });  if (result.success) {
     await loadStudents();
     renderRecordsList();
   }
@@ -3654,18 +3654,21 @@ function handleDelegatedClick(e) {
   switch (action) {
     case 'manageScores': manageScores(id); break;
     case 'manageFinance': manageFinance(id); break;
-    case 'printReceipt': printReceiptCards([STATE.students.find(x => x.id === id)]); break;    case 'editStudent': editStudent(id); break;
+    case 'printReceipt': printReceiptCards([STATE.students.find(x => x.id === id)]); break;
+    case 'editStudent': editStudent(id); break;
     case 'deleteStudent': deleteStudent(id); break;
-    case 'dropStudent': dropStudent(id); break;    case 'toggleLock': toggleLock(id, btn.dataset.locked === 'true'); break;
+    case 'dropStudent': dropStudent(id); break;
+    case 'undropStudent': undropStudent(id); break;
+    case 'toggleLock': toggleLock(id, btn.dataset.locked === 'true'); break;
     case 'editTeacher': editTeacher(id); break;
     case 'deleteTeacher': deleteTeacher(id); break;
     case 'removeSubject': removeSubject(id); break;
     case 'editRecord': editRecord(btn.dataset.subject); break;
     case 'deleteRecord': deleteRecord(btn.dataset.subject); break;
-   case 'removeAssignmentRow': removeAssignmentRow(btn.dataset.row); break;
+    case 'removeAssignmentRow': removeAssignmentRow(btn.dataset.row); break;
     case 'toggleGradeExpand': toggleGradeExpand(btn.dataset.row, btn); break;
+    case 'printMessage': printMessage(id); break;
     case 'studentPrevPage':
-   case 'printMessage': printMessage(id); break;
       STATE.studentPage = Math.max(0, (STATE.studentPage || 0) - 1);
       renderStudentList(STATE.studentSearchText);
       break;
