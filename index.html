@@ -1868,6 +1868,7 @@ async function enterStudentPortal() {
   renderPersonalSheet(s);
   renderGradeSheet(s);
   renderPaymentSheet(s);
+  await refreshUnreadMessageCount();
   renderSidebar();
   show('student');
 }
@@ -2363,11 +2364,12 @@ async function enterTeacherPortal() {
   const classSelect = $('teacherClassSelect');
   const classes = (t.assignments || []).map(a => a.class);
   classSelect.innerHTML = classes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-  onTeacherClassChange();
+   onTeacherClassChange();
   populateLessonPlanSelectors();
   await loadMyLessonPlans();
 
-   renderSidebar();
+   await refreshUnreadMessageCount();
+  renderSidebar();
   renderTeacherStatCards();
   show('teacher');
 }
@@ -2520,6 +2522,7 @@ async function enterAdminPortal() {
   if (isPrincipalUser()) await loadAdminLessonPlans();
 
     applyAdminRoleUI();
+  await refreshUnreadMessageCount();
   renderSidebar();
   renderAdminStatCards();
   renderAdminOverview();
@@ -3590,6 +3593,13 @@ async function loadInbox() {
   const res = await apiCall('getMessages', { recipientType: who.type, recipientId: who.id }, { silent: true });
   const msgs = (res.success && res.messages) || [];
   STATE.inboxMessages = msgs; // keep a lookup so the print button can find the full message
+
+  // Mark everything addressed to this viewer as read, then refresh the
+  // sidebar badge count so it clears once the inbox has actually been seen.
+  await apiCall('markMessagesRead', { recipientType: who.type, recipientId: who.id }, { silent: true });
+  await refreshUnreadMessageCount();
+  renderSidebar();
+
   $('inboxList').innerHTML = msgs.map(m => `
     <div class="item" style="align-items:flex-start;">
       <div>
