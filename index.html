@@ -986,40 +986,34 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       </div>
     </div>
 
-    <div class="box">
-      <h3>📝 Submit Period Lesson Plan</h3>
-      <p class="muted">Log the lesson plan you're teaching this period for Admin/Principal review.</p>
-      <div class="grid">
-        <label>Class
-          <select id="lpClass"></select>
-        </label>
-        <label>Subject
-          <select id="lpSubject"></select>
-        </label>
-        <label>Period
-          <select id="lpPeriod">
-            <option value="p1">1st Period</option>
-            <option value="p2">2nd Period</option>
-            <option value="p3">3rd Period</option>
-            <option value="exam1">1st Sem Exam</option>
-            <option value="p4">4th Period</option>
-            <option value="p5">5th Period</option>
-            <option value="p6">6th Period</option>
-            <option value="exam2">2nd Sem Exam</option>
-          </select>
-        </label>
-        <label class="fullSpan">Lesson Title
-          <input id="lpTitle" placeholder="e.g. Introduction to Fractions">
-        </label>
-        <label class="fullSpan">Lesson Details / Objectives
-          <input id="lpDetails" placeholder="Brief plan, objectives, materials...">
-        </label>
-      </div>
-      <button onclick="submitLessonPlan()">📤 Submit Lesson Plan</button>
-      <h4 class="semTitle">My Recent Submissions</h4>
-      <div id="myLessonPlansList"></div>
+   <section id="teacherLessonPlan" class="page">
+  <div class="toolbar">
+    <button onclick="show('teacher')">← Back to Dashboard</button>
+    <h2>📝 Lesson Plans</h2>
+  </div>
+  <div class="box">
+    <h3>Submit Period Lesson Plan</h3>
+    <p class="muted">Log the lesson plan you're teaching this period for Admin/Principal review.</p>
+    <div class="grid">
+      <label>Class<select id="lpClass"></select></label>
+      <label>Subject<select id="lpSubject"></select></label>
+      <label>Period
+        <select id="lpPeriod">
+          <option value="p1">1st Period</option><option value="p2">2nd Period</option>
+          <option value="p3">3rd Period</option><option value="exam1">1st Sem Exam</option>
+          <option value="p4">4th Period</option><option value="p5">5th Period</option>
+          <option value="p6">6th Period</option><option value="exam2">2nd Sem Exam</option>
+        </select>
+      </label>
+      <label class="fullSpan">Lesson Title<input id="lpTitle" placeholder="e.g. Introduction to Fractions"></label>
+      <label class="fullSpan">Lesson Details / Objectives<input id="lpDetails" placeholder="Brief plan, objectives, materials..."></label>
+      <label class="fullSpan">Attach File (optional)<input id="lpAttachment" type="file"></label>
     </div>
-  </section>
+    <button onclick="submitLessonPlan()">📤 Submit Lesson Plan</button>
+    <h4 class="semTitle">My Recent Submissions</h4>
+    <div id="myLessonPlansList"></div>
+  </div>
+</section>
 
   <!-- TEACHER — ACCOUNT SETTINGS (own page) -->
   <section id="teacherSettings" class="page">
@@ -2499,17 +2493,28 @@ function onLpClassChange() {
 
 async function submitLessonPlan() {
   const t = STATE.currentUser.data;
+  const fileInput = $('lpAttachment');
+  let attachment = null;
+  if (fileInput && fileInput.files[0]) {
+    const file = fileInput.files[0];
+    attachment = await new Promise(res => {
+      const r = new FileReader();
+      r.onload = () => res({ name: file.name, data: r.result });
+      r.readAsDataURL(file);
+    });
+  }
   const plan = {
     teacherId: t.id, teacherName: t.name,
     className: $('lpClass').value, subject: $('lpSubject').value, period: $('lpPeriod').value,
-    title: $('lpTitle').value.trim(), details: $('lpDetails').value.trim()
+    title: $('lpTitle').value.trim(), details: $('lpDetails').value.trim(),
+    attachment: attachment
   };
   if (!plan.className || !plan.subject || !plan.title) { alert('Class, Subject, and Lesson Title are required.'); return; }
   const result = await apiCall('submitLessonPlan', { plan: plan });
   if (result.success) {
     alert(result.message);
-    $('lpTitle').value = '';
-    $('lpDetails').value = '';
+    $('lpTitle').value = ''; $('lpDetails').value = '';
+    if (fileInput) fileInput.value = '';
     await loadMyLessonPlans();
   }
 }
@@ -2521,10 +2526,10 @@ async function loadMyLessonPlans() {
   $('myLessonPlansList').innerHTML = list.map(p => `
     <div class="item">
       <div><b>${esc(p.title)}</b> <span class="muted">— ${esc(p.className)} • ${esc(p.subject)} • ${esc(PERIOD_LABELS[p.period] || p.period)}</span><br>
-      <small class="muted">${esc(p.submittedAt)}</small></div>
+      <small class="muted">${esc(p.submittedAt)}</small>
+      ${p.attachmentUrl ? `<br><a href="${esc(p.attachmentUrl)}" target="_blank">📎 ${esc(p.attachmentName)}</a>` : ''}</div>
     </div>`).join('') || '<p class="muted">No lesson plans submitted yet.</p>';
 }
-
 function renderTeacherPermissionBadges() {
   const box = $('teacherPermissionsStatus');
   box.innerHTML = PERIOD_KEYS.map(k => {
@@ -3367,6 +3372,7 @@ const SIDEBAR_CONFIG = {
     { icon:'📊', label:'Dashboard', action:() => show('teacher') },
     { icon:'✉️', label:'Messages', action:() => renderMessagesPage() },
     { icon:'⚙️', label:'Settings', action:() => { show('teacherSettings'); renderTeacherSettingsForm(); } }
+    { icon:'📝', label:'Lesson Plans', action:() => { show('teacherLessonPlan'); populateLessonPlanSelectors(); loadMyLessonPlans(); } },
   ],
 student: [
   { icon:'📊', label:'Dashboard', action:() => show('student') },
