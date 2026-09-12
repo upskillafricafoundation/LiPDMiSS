@@ -638,16 +638,23 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
   width:100%; max-width:400px; background:#fff; border:1px solid #cbd5e1; border-radius:10px;
   padding:18px 20px; font-family:Arial, sans-serif; color:#172536; box-shadow:0 4px 14px rgba(0,0,0,0.06);
 }
-.receiptSuccessBanner { text-align:center; padding:6px 0 4px; }
-.receiptCheckCircle {
-  width:44px; height:44px; border-radius:50%; border:3px solid #15803d; color:#15803d;
-  display:inline-flex; align-items:center; justify-content:center; font-size:22px; font-weight:900;
+
+/* Top brand block — logo + school name + motto, centered (replaces the old checkmark spot) */
+.receiptTopBrand { text-align:center; padding:4px 0 8px; }
+.receiptTopLogo { width:52px; height:52px; object-fit:contain; margin-bottom:6px; }
+.receiptTopSchoolName { font-weight:900; font-size:14px; color:#082f50; line-height:1.25; }
+.receiptTopMotto { font-size:9.5px; color:#8a7a3a; font-weight:700; letter-spacing:0.5px; margin-top:2px; }
+
+.receiptHeaderRule { border-top:2px solid #103db8; margin:8px 0 12px; }
+
+/* Student photo — now sits where the small logo used to be */
+.receiptStudentPhotoRow { display:flex; justify-content:center; margin-bottom:10px; }
+.receiptStudentPhotoBox {
+  width:56px; height:68px; border-radius:6px; border:2px solid #103db8; overflow:hidden;
+  background:#eef4fb; display:grid; place-items:center; font-size:24px; color:#94a3b8;
 }
-.receiptHeaderRule { border-top:2px solid #103db8; margin:10px 0 12px; }
-.receiptSchoolHead { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
-.receiptSchoolHead img { width:36px; height:36px; object-fit:contain; }
-.receiptSchoolName { font-weight:900; font-size:12.5px; color:#082f50; line-height:1.2; }
-.receiptSchoolMotto { font-size:9px; color:#8a7a3a; font-weight:700; }
+.receiptStudentPhotoBox img { width:100%; height:100%; object-fit:cover; display:block; }
+
 .receiptTitle { text-align:center; font-weight:800; font-size:14px; color:#334155; letter-spacing:1px; margin-bottom:10px; }
 .receiptMetaRow { display:flex; justify-content:space-between; font-size:11px; margin-bottom:10px; }
 .receiptMetaRow small { display:block; color:#64748b; font-weight:700; margin-bottom:2px; }
@@ -661,9 +668,16 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
   display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900;
 }
 .receiptRowLabel { font-weight:700; }
-.receiptRowMerchant small { display:block; color:#94a3b8; font-size:9px; }
+.receiptRowDate { color:#64748b; font-size:10.5px; }
+.receiptRowDate small { display:block; color:#94a3b8; font-size:9px; }
 .receiptRowAmount { text-align:right; font-weight:800; white-space:nowrap; }
-.receiptTotalRow { display:flex; justify-content:space-between; font-weight:900; font-size:13px; padding:12px 0 4px; }
+
+.receiptTotalsBar { display:flex; justify-content:space-between; gap:14px; padding:12px 0 4px; }
+.receiptTotalsBar > div { flex:1; }
+.receiptTotalsBar small { display:block; color:#64748b; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:0.4px; }
+.receiptTotalsBar b { font-size:14px; }
+.receiptTotalsBar .receiptBalanceBlock { text-align:right; }
+
 .receiptFooterNote { font-size:9px; color:#94a3b8; text-align:center; margin-top:6px; }
 
 @media print {
@@ -2077,13 +2091,13 @@ function buildReceiptRow(label, amount, currency) {
     </div>`;
 }
 
-function buildReceiptRow(label, amount, currency) {
+function buildReceiptRow(label, amount, currency, dateStr) {
   if (!amount || Number(amount) <= 0) return '';
   return `
     <div class="receiptRow">
       <div class="receiptRowCheck">✓</div>
       <div class="receiptRowLabel">${esc(label)}</div>
-      <div class="receiptRowMerchant"><small>School</small>${esc(APP_CONFIG.SCHOOL_NAME)}</div>
+      <div class="receiptRowDate"><small>Payment Date</small>${esc(dateStr) || '—'}</div>
       <div class="receiptRowAmount">${formatMoney(amount, currency)}</div>
     </div>`;
 }
@@ -2092,35 +2106,38 @@ function buildReceiptCardHtml(s) {
   const f = s.finance || {};
   const currency = f.currency || 'USD';
   const installments = f.installments || [0, 0, 0, 0];
+  const fallbackDate = f.updatedAt || new Date().toLocaleDateString();
   const rows = [];
 
-  if (f.registrationPaid) rows.push(buildReceiptRow('Registration Fee', f.registrationFee, currency));
-  rows.push(buildReceiptRow('Requirements Fee', f.requirementsFee, currency));
-  rows.push(buildReceiptRow('PE Suit Fee', f.peSuitFee, currency));
-  rows.push(buildReceiptRow('Portal Fee', f.portalFee, currency));
+  if (f.registrationPaid) rows.push(buildReceiptRow('Registration Fee', f.registrationFee, currency, f.registrationDate || fallbackDate));
+  rows.push(buildReceiptRow('Requirements Fee', f.requirementsFee, currency, fallbackDate));
+  rows.push(buildReceiptRow('PE Suit Fee', f.peSuitFee, currency, fallbackDate));
+  rows.push(buildReceiptRow('Portal Fee', f.portalFee, currency, fallbackDate));
   ['1st', '2nd', '3rd', '4th'].forEach((ord, i) => {
-    rows.push(buildReceiptRow(`${ord} Tuition Installment`, installments[i], currency));
+    rows.push(buildReceiptRow(`${ord} Tuition Installment`, installments[i], currency, fallbackDate));
   });
-  rows.push(buildReceiptRow('Other Payments', f.otherPayments, currency));
+  rows.push(buildReceiptRow('Other Payments', f.otherPayments, currency, fallbackDate));
 
   const rowsHtml = rows.join('') || `<p class="muted" style="padding:10px 0;">No payments recorded yet.</p>`;
 
-  const totalProcessed =
+  const totalPaid =
     (f.registrationPaid ? toNum(f.registrationFee) : 0) +
     toNum(f.requirementsFee) + toNum(f.peSuitFee) + toNum(f.portalFee) +
     installments.reduce((a, b) => a + toNum(b), 0) +
     toNum(f.otherPayments);
 
+  const totalBalance = Math.max(0, toNum(f.tuitionTotal) - installments.reduce((a, b) => a + toNum(b), 0));
+
   return `
     <div class="receiptCard">
-      <div class="receiptSuccessBanner"><div class="receiptCheckCircle">✓</div></div>
+      <div class="receiptTopBrand">
+        <img class="receiptTopLogo" src="assets/lipdmiss-logo.png" alt="Logo" onerror="this.style.display='none'">
+        <div class="receiptTopSchoolName">${esc(APP_CONFIG.SCHOOL_NAME)}</div>
+        <div class="receiptTopMotto">${esc(APP_CONFIG.MOTTO)}</div>
+      </div>
       <div class="receiptHeaderRule"></div>
-      <div class="receiptSchoolHead">
-        <img src="assets/lipdmiss-logo.png" alt="Logo" onerror="this.style.display='none'">
-        <div>
-          <div class="receiptSchoolName">${esc(APP_CONFIG.SCHOOL_NAME)}</div>
-          <div class="receiptSchoolMotto">${esc(APP_CONFIG.MOTTO)}</div>
-        </div>
+      <div class="receiptStudentPhotoRow">
+        <div class="receiptStudentPhotoBox">${photoTag(s.photo, '')}</div>
       </div>
       <div class="receiptTitle">PAYMENT RECEIPT</div>
       <div class="receiptMetaRow">
@@ -2128,11 +2145,13 @@ function buildReceiptCardHtml(s) {
         <div><small>Date</small><b>${new Date().toLocaleDateString()}</b></div>
       </div>
       <div class="receiptRowsWrap">${rowsHtml}</div>
-      <div class="receiptTotalRow"><span>Total Processed:</span><b>${formatMoney(totalProcessed, currency)}</b></div>
+      <div class="receiptTotalsBar">
+        <div><small>Total Paid</small><b>${formatMoney(totalPaid, currency)}</b></div>
+        <div class="receiptBalanceBlock"><small>Total Balance</small><b class="${totalBalance > 0 ? 'fail' : 'pass'}">${formatMoney(totalBalance, currency)}</b></div>
+      </div>
       <div class="receiptFooterNote">Payments are record-only; no payment is processed online on this website.</div>
     </div>`;
 }
-
 function renderPaymentSheet(s) {
   $('paymentPrintable').innerHTML = `<div class="receiptPrintGrid">${buildReceiptCardHtml(s)}</div>`;
 }
