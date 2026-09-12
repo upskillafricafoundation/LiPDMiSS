@@ -312,8 +312,10 @@ select.gwUnderlineInput { padding: 9px 2px 9px 0; background: #fff; }
 @keyframes overdueBlink { 50% { opacity: 0.35; } }
 
 /* CLASS FEE SCHEDULE TABLE (principal "Fees" tab) */
-.feeScheduleGrid { display:grid; grid-template-columns: repeat(4,1fr); gap:12px 18px; }
-.feeInstallmentRow { display:grid; grid-template-columns: 1fr 1fr; gap:10px; border:1px solid #e2e8f0; border-radius:8px; padding:10px; background:#f8fafc; }
+.feeScheduleGrid { display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:14px; }
+.feeInstallmentRow { display:flex; flex-direction:column; gap:8px; border:1px solid #e2e8f0; border-radius:8px; padding:12px; background:#f8fafc; min-width:0; }
+.feeInstallmentRow label { min-width:0; }
+.feeInstallmentRow input { width:100%; min-width:0; }
 /* COLLAPSIBLE GRADE SHEET / PAYMENT RECORD SECTIONS */
 .collapsible { background: #fff; border-radius: 14px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06); margin: 15px 0; overflow: hidden; border: 1px solid #e2e8f0; }
 .collapsible > summary { cursor: pointer; padding: 18px 22px; font-weight: 800; color: #082f50; font-size: 16px; list-style: none; display: flex; justify-content: space-between; align-items: center; background: #f8fafc; user-select: none; }
@@ -1205,6 +1207,13 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
             <select id="newGrade" onchange="onNewGradeChange()"></select>
             <small class="muted" id="newGradeFeePreview"></small>
           </label>
+          <label>Student Category *
+            <select id="newStudentCategory" onchange="onNewGradeChange()">
+              <option value="old">Old Student (Returning)</option>
+              <option value="new">New Student (Entrance Fee applies)</option>
+            </select>
+          </label>
+           
           <label>Academic Year *
             <select id="newAcademicYear"></select>
           </label>
@@ -1347,16 +1356,25 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
     <!-- CLASS FEE SCHEDULE TAB — Principal sets tuition/registration/
          requirements fees & deadlines per class; Registrar's Add Student
          form auto-applies these the moment a class is picked. -->
-    <div id="feesTab" class="hidden">
+        <div id="feesTab" class="hidden">
       <div class="box">
         <h3>🏦 Class Fee Schedule</h3>
-        <p class="muted">Set tuition, registration and requirements fees, plus payment deadlines, per class. When Registrar registers a new student into a class, these amounts are automatically assigned to that student's payment record. Once a deadline passes without payment, the student sees a blinking overdue notice on their dashboard.</p>
+        <p class="muted">Each class has two separate fee schedules — Old Student (returning) and New Student (first-time, includes an Entrance Fee). When Registrar registers a student and picks their category, the matching schedule is automatically assigned to that student's payment record.</p>
         <div class="grid">
+          <label>Student Category *
+            <select id="feeStudentCategory" onchange="loadFeeIntoForm($('feeClass').value)">
+              <option value="old">Old Student (Returning)</option>
+              <option value="new">New Student (Entrance Fee)</option>
+            </select>
+          </label>
           <label>Class *
             <select id="feeClass"></select>
           </label>
           <label>Currency
             <input id="feeCurrency" placeholder="e.g. USD or LRD">
+          </label>
+          <label id="feeEntranceFeeWrap">Entrance Fee (New Students only)
+            <input id="feeEntranceFee" type="number" min="0" step="0.01" placeholder="0.00">
           </label>
           <label>Registration Fee
             <input id="feeRegistrationFee" type="number" min="0" step="0.01" placeholder="0.00">
@@ -1397,7 +1415,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
           </div>
         </div>
         <div class="scoreFormActions">
-          <button onclick="saveClassFee()">💾 Save Fee Schedule for This Class</button>
+          <button onclick="saveClassFee()">💾 Save Fee Schedule for This Class &amp; Category</button>
           <button class="light" onclick="loadFeeIntoForm('')">Clear Form</button>
         </div>
       </div>
@@ -1406,7 +1424,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         <div id="feeScheduleList"></div>
       </div>
     </div>
-
+     
     <!-- ACCOUNT SETTINGS TAB — available to both Principal and Registrar. -->
     <div id="settingsTab" class="hidden">
       <div class="box" style="max-width:650px;">
@@ -1489,6 +1507,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       <h3>💳 Tuition &amp; Registration — Admin Only</h3>
       <p class="muted">Payments are record-only. No payment is processed online on this website.</p>
       <div class="grid">
+        <label>Entrance Fee (one-time, New Students)<input id="entranceFee" type="number" min="0" step="0.01" placeholder="0.00"></label>
         <label>Registration Fee (one-time)<input id="registrationFee" type="number" min="0" step="0.01" placeholder="0.00"></label>
         <label>Registration Payment Date<input id="registrationDate" type="date"></label>
         <label>Tuition Total for Academic Year<input id="tuitionTotal" type="number" min="0" step="0.01" placeholder="0.00"></label>
@@ -1510,7 +1529,8 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       </div>
        <div id="financeCalc" class="financeCalc"></div>
       <p id="financeRoleNotice" class="financeRoleNotice hidden">🔒 View-only: Admin accounts cannot edit financial records. Contact the Registrar to record a transaction.</p>
-      <div class="financeActions" style="flex-direction:column;align-items:flex-start;gap:10px;">
+            <div class="financeActions" style="flex-direction:column;align-items:flex-start;gap:10px;">
+        <label class="check"><input id="entranceFeePaid" type="checkbox"> Entrance fee paid (one-time)</label>
         <label class="check"><input id="registrationPaid" type="checkbox"> Registration paid (one-time)</label>
         <label class="check"><input id="requirementsFeePaid" type="checkbox"> Requirements fee paid (one-time)</label>
         <label class="check"><input id="peSuitFeePaid" type="checkbox"> PE Suit fee paid (one-time)</label>
@@ -2300,6 +2320,7 @@ function buildReceiptCardHtml(s) {
   const fallbackDate = f.updatedAt || new Date().toLocaleDateString();
   const rows = [];
 
+   if (f.entranceFeePaid) rows.push(buildReceiptRow('Entrance Fee', f.entranceFee, currency, fallbackDate));
   if (f.registrationPaid) rows.push(buildReceiptRow('Registration Fee', f.registrationFee, currency, f.registrationDate || fallbackDate));
   if (f.requirementsFeePaid) rows.push(buildReceiptRow('Requirements Fee', f.requirementsFee, currency, fallbackDate));
   if (f.peSuitFeePaid) rows.push(buildReceiptRow('PE Suit Fee', f.peSuitFee, currency, fallbackDate));
@@ -2312,6 +2333,7 @@ function buildReceiptCardHtml(s) {
   const rowsHtml = rows.join('') || `<p class="muted" style="padding:10px 0;">No payments recorded yet.</p>`;
 
   const totalPaid =
+    (f.entranceFeePaid ? toNum(f.entranceFee) : 0) +
     (f.registrationPaid ? toNum(f.registrationFee) : 0) +
     (f.requirementsFeePaid ? toNum(f.requirementsFee) : 0) +
     (f.peSuitFeePaid ? toNum(f.peSuitFee) : 0) +
@@ -2319,7 +2341,6 @@ function buildReceiptCardHtml(s) {
     installments.reduce((a, b) => a + toNum(b), 0) +
     toNum(f.otherPayments);
 
-  // Total Balance now reflects every fee category still outstanding.
   const totalBalance = studentBalance(s);
   return `
     <div class="receiptCard">
@@ -2369,7 +2390,8 @@ function studentBalance(s) {
   const reqBalance = f.requirementsFeePaid ? 0 : toNum(f.requirementsFee);
   const peBalance = f.peSuitFeePaid ? 0 : toNum(f.peSuitFee);
   const portalBalance = f.portalFeePaid ? 0 : toNum(f.portalFee);
-  return tuitionBalance + regBalance + reqBalance + peBalance + portalBalance;
+  const entranceBalance = f.entranceFeePaid ? 0 : toNum(f.entranceFee);
+  return tuitionBalance + regBalance + reqBalance + peBalance + portalBalance + entranceBalance;
 }
 
 function populateReceiptClassSelect() {
@@ -2708,8 +2730,12 @@ function populateFeeClassSelect() {
 
 function loadFeeIntoForm(className) {
   if (className && $('feeClass')) $('feeClass').value = className;
-  const fee = className ? STATE.classFees[className] : null;
+  const category = $('feeStudentCategory') ? $('feeStudentCategory').value : 'old';
+  const classEntry = className ? STATE.classFees[className] : null;
+  const fee = classEntry ? classEntry[category] : null;
+
   $('feeCurrency').value = fee ? fee.currency : 'USD';
+  $('feeEntranceFee').value = fee ? (fee.entranceFee || 0) : 0;
   $('feeRegistrationFee').value = fee ? fee.registrationFee : 0;
   $('feeRegistrationDeadline').value = fee ? fee.registrationDeadline : '';
   $('feeTuitionTotal').value = fee ? fee.tuitionTotal : 0;
@@ -2721,14 +2747,24 @@ function loadFeeIntoForm(className) {
     $(`feeInst${n}Amount`).value = (inst[idx] && inst[idx].amount) || 0;
     $(`feeInst${n}Deadline`).value = (inst[idx] && inst[idx].deadline) || '';
   });
+
+  // Entrance Fee only makes sense for New Student schedules — grey it out
+  // for Old Student so it's clear it isn't part of that category.
+  const entranceInput = $('feeEntranceFee');
+  const entranceWrap = $('feeEntranceFeeWrap');
+  if (entranceInput) entranceInput.disabled = (category !== 'new');
+  if (entranceWrap) entranceWrap.style.opacity = (category === 'new') ? '1' : '0.5';
 }
 
 async function saveClassFee() {
   const className = $('feeClass').value;
   if (!className) { alert('Select a class.'); return; }
+  const category = $('feeStudentCategory').value;
   const classFee = {
     className: className,
+    studentCategory: category,
     currency: $('feeCurrency').value.trim() || 'USD',
+    entranceFee: toNum($('feeEntranceFee').value),
     registrationFee: toNum($('feeRegistrationFee').value),
     registrationDeadline: $('feeRegistrationDeadline').value,
     tuitionTotal: toNum($('feeTuitionTotal').value),
@@ -2748,9 +2784,10 @@ async function saveClassFee() {
   }
 }
 
-async function deleteClassFee(className) {
-  if (!confirm(`Remove the fee schedule for ${className}?`)) return;
-  const result = await apiCall('deleteClassFee', { className: className, actorRole: currentActorRole() });
+async function deleteClassFee(className, studentCategory) {
+  const label = studentCategory === 'new' ? 'New Student' : 'Old Student';
+  if (!confirm(`Remove the ${label} fee schedule for ${className}?`)) return;
+  const result = await apiCall('deleteClassFee', { className: className, studentCategory: studentCategory, actorRole: currentActorRole() });
   if (result.success) {
     STATE.classFees = result.classFees || {};
     renderFeeScheduleList();
@@ -2764,21 +2801,32 @@ function renderFeeScheduleList() {
   const classes = Object.keys(STATE.classFees);
   if (!classes.length) { wrap.innerHTML = '<p class="muted">No class fee schedules set yet.</p>'; return; }
 
-  wrap.innerHTML = classes.sort((a, b) => GRADE_LEVELS.indexOf(a) - GRADE_LEVELS.indexOf(b)).map(cls => {
-    const f = STATE.classFees[cls];
+  const cardFor = (cls, category, f) => {
+    if (!f) {
+      return `<div class="item" style="align-items:flex-start;opacity:0.6;">
+        <div><b>${esc(cls)} — ${category === 'new' ? 'New Student' : 'Old Student'}</b><br><span class="muted">No schedule set yet.</span></div>
+        <div class="studentCardActions"><button class="light" onclick="$('feeStudentCategory').value='${category}';loadFeeIntoForm('${esc(cls)}')">➕ Set Up</button></div>
+      </div>`;
+    }
     const instSummary = f.installments.map((i, idx) => `${idx + 1}: ${formatMoney(i.amount, f.currency)}${i.deadline ? ' (due ' + esc(i.deadline) + ')' : ''}`).join(' • ');
+    const entranceLine = category === 'new' ? `Entrance: ${formatMoney(f.entranceFee, f.currency)} • ` : '';
     return `<div class="item" style="align-items:flex-start;">
       <div>
-        <b>${esc(cls)}</b><br>
-        <span class="muted">Registration: ${formatMoney(f.registrationFee, f.currency)}${f.registrationDeadline ? ' (due ' + esc(f.registrationDeadline) + ')' : ''} • Tuition Total: ${formatMoney(f.tuitionTotal, f.currency)}</span><br>
+        <b>${esc(cls)} — ${category === 'new' ? 'New Student' : 'Old Student'}</b><br>
+        <span class="muted">${entranceLine}Registration: ${formatMoney(f.registrationFee, f.currency)}${f.registrationDeadline ? ' (due ' + esc(f.registrationDeadline) + ')' : ''} • Tuition Total: ${formatMoney(f.tuitionTotal, f.currency)}</span><br>
         <span class="muted">Requirements: ${formatMoney(f.requirementsFee, f.currency)} • PE Suit: ${formatMoney(f.peSuitFee, f.currency)} • Portal: ${formatMoney(f.portalFee, f.currency)}</span><br>
         <span class="muted">${instSummary}</span>
       </div>
       <div class="studentCardActions">
-        <button class="light" onclick="loadFeeIntoForm('${esc(cls)}')">✏️ Edit</button>
-        <button class="danger" onclick="deleteClassFee('${esc(cls)}')">🗑 Remove</button>
+        <button class="light" onclick="$('feeStudentCategory').value='${category}';loadFeeIntoForm('${esc(cls)}')">✏️ Edit</button>
+        <button class="danger" onclick="deleteClassFee('${esc(cls)}','${category}')">🗑 Remove</button>
       </div>
     </div>`;
+  };
+
+  wrap.innerHTML = classes.sort((a, b) => GRADE_LEVELS.indexOf(a) - GRADE_LEVELS.indexOf(b)).map(cls => {
+    const entry = STATE.classFees[cls] || { new: null, old: null };
+    return cardFor(cls, 'old', entry.old) + cardFor(cls, 'new', entry.new);
   }).join('');
 }
 
@@ -2788,10 +2836,15 @@ function renderFeeScheduleList() {
 function onNewGradeChange() {
   const preview = $('newGradeFeePreview');
   if (!preview) return;
-  const fee = STATE.classFees[$('newGrade').value];
-  preview.textContent = fee
-    ? `Auto-assigns: Registration ${formatMoney(fee.registrationFee, fee.currency)} • Tuition Total ${formatMoney(fee.tuitionTotal, fee.currency)}`
-    : 'No fee schedule on file for this class yet — set one in the Fees tab.';
+  const category = $('newStudentCategory') ? $('newStudentCategory').value : 'old';
+  const classEntry = STATE.classFees[$('newGrade').value];
+  const fee = classEntry ? classEntry[category] : null;
+  if (!fee) {
+    preview.textContent = `No ${category === 'new' ? 'New Student' : 'Old Student'} fee schedule on file for this class yet — set one in the Fees tab.`;
+    return;
+  }
+  const entranceLine = category === 'new' ? ` • Entrance Fee ${formatMoney(fee.entranceFee, fee.currency)}` : '';
+  preview.textContent = `Auto-assigns: Registration ${formatMoney(fee.registrationFee, fee.currency)} • Tuition Total ${formatMoney(fee.tuitionTotal, fee.currency)}${entranceLine}`;
 }
    function applyAdminRoleUI() {
   const isPrincipal = isPrincipalUser();
@@ -2991,13 +3044,13 @@ function searchStudents(val) {
 function clearStudentForm() {
   ['newId', 'newName', 'newPass', 'newDob', 'newRole', 'newBehaviour', 'newGuardian', 'newPhone'].forEach(id => $(id).value = '');
   $('newGrade').selectedIndex = 0;
+  $('newStudentCategory').value = 'old';
   $('newAcademicYear').value = STATE.activeYear;
   $('newPhoto').value = '';
   $('newGradeLocked').checked = false;
   STATE.newPhotoDataUrl = '';
   STATE.editingStudentId = null;
 }
-
 function readPhotoInput() {
   return new Promise(resolve => {
     const file = $('newPhoto').files[0];
@@ -3027,7 +3080,8 @@ async function addStudent() {
     id: id, name: name, grade: grade, academicYear: academicYear, password: password,
     dob: $('newDob').value, role: $('newRole').value.trim(), behaviour: $('newBehaviour').value.trim(),
     guardian: $('newGuardian').value.trim(), phone: $('newPhone').value.trim(),
-    gradeLocked: $('newGradeLocked').checked
+    gradeLocked: $('newGradeLocked').checked,
+    studentCategory: $('newStudentCategory').value
   };
   if (photoData) student.photo = photoData;
 
@@ -3685,10 +3739,11 @@ function manageFinance(id) {
   $('financeRecordHeader').innerHTML = `
     <div class="item studentCard">
       <div class="thumb">${photoTag(s.photo, '')}</div>
-      <div><b>${esc(s.name)}</b><br><span class="muted">${esc(s.id)} • ${esc(s.className)}</span></div>
+      <div><b>${esc(s.name)}</b><br><span class="muted">${esc(s.id)} • ${esc(s.className)} • ${s.studentCategory === 'new' ? 'New Student' : 'Old Student'}</span></div>
     </div>`;
 
   const f = s.finance || {};
+  $('entranceFee').value = f.entranceFee || 0;
   $('registrationFee').value = f.registrationFee || 0;
   $('registrationDate').value = f.registrationDate || '';
   $('tuitionTotal').value = f.tuitionTotal || 0;
@@ -3702,6 +3757,7 @@ function manageFinance(id) {
   $('requirementsFee').value = f.requirementsFee || 0;
   $('peSuitFee').value = f.peSuitFee || 0;
   $('portalFee').value = f.portalFee || 0;
+  $('entranceFeePaid').checked = !!f.entranceFeePaid;
   $('registrationPaid').checked = !!f.registrationPaid;
   $('requirementsFeePaid').checked = !!f.requirementsFeePaid;
   $('peSuitFeePaid').checked = !!f.peSuitFeePaid;
@@ -3723,17 +3779,19 @@ function renderFinanceCalc() {
   const tuitionBalance = Math.max(0, tuitionTotal - paid);
   const currency = $('currency').value || 'USD';
   const otherPayments = toNum($('otherPayments').value);
+  const entranceFee = toNum($('entranceFee').value);
   const registrationFee = toNum($('registrationFee').value);
   const requirementsFee = toNum($('requirementsFee').value);
   const peSuitFee = toNum($('peSuitFee').value);
   const portalFee = toNum($('portalFee').value);
   const additionalFees = otherPayments + requirementsFee + peSuitFee + portalFee;
 
+  const entranceOutstanding = $('entranceFeePaid').checked ? 0 : entranceFee;
   const regOutstanding = $('registrationPaid').checked ? 0 : registrationFee;
   const reqOutstanding = $('requirementsFeePaid').checked ? 0 : requirementsFee;
   const peOutstanding = $('peSuitFeePaid').checked ? 0 : peSuitFee;
   const portalOutstanding = $('portalFeePaid').checked ? 0 : portalFee;
-  const totalBalance = tuitionBalance + regOutstanding + reqOutstanding + peOutstanding + portalOutstanding;
+  const totalBalance = tuitionBalance + entranceOutstanding + regOutstanding + reqOutstanding + peOutstanding + portalOutstanding;
 
   $('financeCalc').innerHTML = `
     <div><span class="muted">Total Paid (Tuition):</span> <b>${formatMoney(paid, currency)}</b></div>
@@ -3743,6 +3801,8 @@ function renderFinanceCalc() {
 
 async function saveFinance() {
   const finance = {
+    entranceFee: toNum($('entranceFee').value),
+    entranceFeePaid: $('entranceFeePaid').checked,
     registrationFee: toNum($('registrationFee').value),
     registrationPaid: $('registrationPaid').checked,
     registrationDate: $('registrationDate').value,
@@ -4158,14 +4218,14 @@ function handleDelegatedClick(e) {
 
 document.addEventListener('DOMContentLoaded', () => {
   document.body.addEventListener('click', handleDelegatedClick);
-    ['registrationFee', 'tuitionTotal', 'inst1', 'inst2', 'inst3', 'inst4', 'currency', 'otherPayments', 'requirementsFee', 'peSuitFee', 'portalFee'].forEach(id => {    $(id).addEventListener('input', renderFinanceCalc);
+    ['entranceFee', 'registrationFee', 'tuitionTotal', 'inst1', 'inst2', 'inst3', 'inst4', 'currency', 'otherPayments', 'requirementsFee', 'peSuitFee', 'portalFee'].forEach(id => {    $(id).addEventListener('input', renderFinanceCalc);
   });
-  ['registrationPaid', 'requirementsFeePaid', 'peSuitFeePaid', 'portalFeePaid'].forEach(id => {
+  ['entranceFeePaid', 'registrationPaid', 'requirementsFeePaid', 'peSuitFeePaid', 'portalFeePaid'].forEach(id => {
     $(id).addEventListener('change', renderFinanceCalc);
   });
   onGatewayUserTypeChange();
   show('gateway');
-});;
+});
 </script>
 </body>
 </html>
