@@ -2942,6 +2942,35 @@ function renderStudentList(filterText) {
   renderAdminStatCards();
 }
 
+   function renderStudentSettingsForm() {
+  const s = STATE.currentUser.data;
+  $('studentSettingsProfileTable').innerHTML = `
+    <tr><td><b>Student ID</b></td><td>${esc(s.id)}</td></tr>
+    <tr><td><b>Full Name</b></td><td>${esc(s.name)}</td></tr>
+    <tr><td><b>Class</b></td><td>${esc(s.className)}</td></tr>
+    <tr><td><b>Academic Year</b></td><td>${esc(s.academicYear)}</td></tr>
+    <tr><td><b>Date of Birth</b></td><td>${esc(s.dob) || '—'}</td></tr>
+    <tr><td><b>Guardian</b></td><td>${esc(s.guardian) || '—'}</td></tr>
+    <tr><td><b>Guardian Phone</b></td><td>${esc(s.phone) || '—'}</td></tr>`;
+  $('studentSettingsNewPassword').value = '';
+  $('studentSettingsConfirmPassword').value = '';
+  $('stayLoggedInToggle').checked = !!localStorage.getItem(STAY_LOGGED_KEY);
+}
+
+async function saveStudentSettings() {
+  const newPass = $('studentSettingsNewPassword').value;
+  const confirmPass = $('studentSettingsConfirmPassword').value;
+  if (!newPass) { alert('Enter a new password.'); return; }
+  if (newPass !== confirmPass) { alert('Passwords do not match.'); return; }
+  const s = STATE.currentUser.data;
+  const result = await apiCall('updateStudentPassword', { id: s.id, newPassword: newPass });
+  if (result.success) {
+    alert(result.message);
+    $('studentSettingsNewPassword').value = '';
+    $('studentSettingsConfirmPassword').value = '';
+  }
+}
+
 function buildStudentTableHtmlFinance(items) {
   if (!items.length) return '<p class="muted">No students found for this academic year.</p>';
 
