@@ -453,6 +453,9 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 
 #topHeader.hidden { display: none !important; }
 .tabs { display: none; } /* sidebar now handles this navigation */
+.msgTabs { display: flex; gap: 8px; margin: 20px 0 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; flex-wrap: wrap; }
+.msgTabs button { background: #e8eef3; color: #082f50; border-radius: 8px 8px 0 0; margin: 0; padding: 10px 18px; }
+.msgTabs button.activeTab { background: #082f50; color: #fff; }
 
 /* ===================== SYSTEM MANAGEMENT DASHBOARD (overview) ===================== */
 .ovHeader { margin-bottom: 18px; }
@@ -1016,6 +1019,41 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
     </div>
   </section>
 
+  <!-- TEACHER — ACCOUNT SETTINGS (own page) -->
+  <section id="teacherSettings" class="page">
+    <div class="toolbar">
+      <button onclick="show('teacher')">← Back to Dashboard</button>
+      <h2>⚙️ Account Settings</h2>
+    </div>
+    <div class="box" style="max-width:650px;">
+      <p class="muted">Update your profile photo, name, and title, or change your password.</p>
+      <label class="fullSpan">Profile Photo
+        <input id="teacherSettingsPhoto" type="file" accept="image/*" onchange="previewTeacherSettingsPhoto(event)">
+      </label>
+      <div style="display:flex;justify-content:center;margin-bottom:16px;">
+        <div class="thumb" id="teacherSettingsPhotoPreview" style="width:110px;height:110px;border-radius:50%;"></div>
+      </div>
+      <div class="grid">
+        <label>Teacher ID
+          <input id="teacherSettingsId" disabled>
+        </label>
+        <label>Full Name
+          <input id="teacherSettingsName" placeholder="e.g. Mr. David Kollie">
+        </label>
+        <label class="fullSpan">Title
+          <input id="teacherSettingsTitle" placeholder="e.g. Grade 5 Homeroom Teacher">
+        </label>
+        <label>New Password (leave blank to keep current)
+          <input id="teacherSettingsNewPassword" type="password" placeholder="New password">
+        </label>
+        <label>Confirm New Password
+          <input id="teacherSettingsConfirmPassword" type="password" placeholder="Confirm new password">
+        </label>
+      </div>
+      <button onclick="saveTeacherSettings()">💾 Save Settings</button>
+    </div>
+  </section>
+
   <!-- =========================================================================
        STUDENT PORTAL — personal academic details up top, then two
        collapsible sections (Grade Sheet, Payment Record). All three sheets
@@ -1152,8 +1190,8 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
       </div>
         <div id="studentList"></div>
       <div id="studentPaginationBar" class="paginationBar"></div>
-    </div>
   <details class="collapsible" id="addStudentCollapsible">
+     
         <summary>➕ Add New Student Record <span class="collapsibleHint">click to expand</span></summary>
         <div class="collapsibleBody">
         <div class="grid">
@@ -1195,9 +1233,10 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
             <input id="newGradeLocked" type="checkbox"> Lock this student's grade sheet from view immediately after adding
           </label>
         </div>
-          <button onclick="addStudent()">Add Student Record</button>
+         <button onclick="addStudent()">Add Student Record</button>
       </div>
       </details>
+    </div>
 
 
     <!-- TEACHER MANAGEMENT & PERMISSIONS TAB -->
@@ -1367,9 +1406,39 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
         <div id="feeScheduleList"></div>
       </div>
     </div>
-  </section>
 
-  <!-- ACADEMIC SCORES MANAGEMENT PAGE (ADMIN ONLY) -->
+    <!-- ACCOUNT SETTINGS TAB — available to both Principal and Registrar. -->
+    <div id="settingsTab" class="hidden">
+      <div class="box" style="max-width:650px;">
+        <h3>⚙️ My Account Settings</h3>
+        <p class="muted">Update your profile photo, display name, and title, or change your password.</p>
+        <label class="fullSpan">Profile Photo
+          <input id="adminSettingsPhoto" type="file" accept="image/*" onchange="previewAdminSettingsPhoto(event)">
+        </label>
+        <div style="display:flex;justify-content:center;margin-bottom:16px;">
+          <div class="thumb" id="adminSettingsPhotoPreview" style="width:110px;height:110px;border-radius:50%;"></div>
+        </div>
+        <div class="grid">
+          <label>Username (login ID)
+            <input id="adminSettingsUsername" disabled>
+          </label>
+          <label>Display Name
+            <input id="adminSettingsName" placeholder="e.g. Nelson S. Suah">
+          </label>
+          <label class="fullSpan">Title
+            <input id="adminSettingsTitle" placeholder="e.g. Principal, Registrar, Vice Principal">
+          </label>
+          <label>New Password (leave blank to keep current)
+            <input id="adminSettingsNewPassword" type="password" placeholder="New password">
+          </label>
+          <label>Confirm New Password
+            <input id="adminSettingsConfirmPassword" type="password" placeholder="Confirm new password">
+          </label>
+        </div>
+        <button onclick="saveAdminSettings()">💾 Save Settings</button>
+      </div>
+    </div>
+  </section>
 
   <!-- ACADEMIC SCORES MANAGEMENT PAGE (ADMIN ONLY) -->
   <section id="records" class="page">
@@ -1472,7 +1541,12 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
     </div>
     <button onclick="sendMessage()">Send Message</button>
   </div>
-  <div class="box"><h3>Inbox</h3><div id="inboxList"></div></div>
+  <div class="msgTabs">
+    <button id="tabBtnInbox" class="activeTab" onclick="messagesTab('inbox')">📥 Inbox</button>
+    <button id="tabBtnSent" class="hidden" onclick="messagesTab('sent')">📤 Sent</button>
+  </div>
+  <div id="inboxTabBox" class="box"><h3>Inbox</h3><div id="inboxList"></div></div>
+  <div id="sentTabBox" class="box hidden"><h3>Sent Messages</h3><div id="sentList"></div></div>
 </section>
       </div>
     </div>
@@ -1882,7 +1956,8 @@ function renderOverdueBanner(s) {
     : '';
 }
 function printMessage(id) {
-  const m = (STATE.inboxMessages || []).find(x => String(x.id) === String(id));
+  const m = (STATE.inboxMessages || []).find(x => String(x.id) === String(id)) ||
+    (STATE.sentMessages || []).find(x => String(x.id) === String(id));
   if (!m) return;
 
   const recipientLabel = m.recipientType === 'all'
@@ -2580,7 +2655,7 @@ function changeSchoolYear(year) {
 
  function adminTab(tab) {
   STATE.adminTab = tab;
-  ['overview', 'students', 'teachers', 'permissions', 'subjects', 'fees'].forEach(t => {
+  ['overview', 'students', 'teachers', 'permissions', 'subjects', 'fees', 'settings'].forEach(t => {
     const el = $(`${t}Tab`);
     if (el) el.classList.toggle('hidden', t !== tab);
     const btn = $(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -3100,6 +3175,100 @@ async function deleteRecord(subject) {
   }
 }
 
+   let _adminSettingsPhotoData = '';
+function previewAdminSettingsPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    _adminSettingsPhotoData = reader.result;
+    $('adminSettingsPhotoPreview').innerHTML = photoTag(_adminSettingsPhotoData, '');
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderAdminSettingsForm() {
+  const d = STATE.currentUser.data || {};
+  _adminSettingsPhotoData = '';
+  $('adminSettingsUsername').value = d.username || '';
+  $('adminSettingsName').value = d.name || '';
+  $('adminSettingsTitle').value = d.title || '';
+  $('adminSettingsNewPassword').value = '';
+  $('adminSettingsConfirmPassword').value = '';
+  $('adminSettingsPhotoPreview').innerHTML = photoTag(d.photo, '');
+  $('adminSettingsPhoto').value = '';
+}
+
+async function saveAdminSettings() {
+  const d = STATE.currentUser.data || {};
+  const newPass = $('adminSettingsNewPassword').value;
+  const confirmPass = $('adminSettingsConfirmPassword').value;
+  if (newPass && newPass !== confirmPass) {
+    alert('New password and confirmation do not match.');
+    return;
+  }
+  const name = $('adminSettingsName').value.trim();
+  const title = $('adminSettingsTitle').value.trim();
+  const payload = { username: d.username, name: name, title: title, actorRole: currentActorRole() };
+  if (newPass) payload.newPassword = newPass;
+  if (_adminSettingsPhotoData) payload.photo = _adminSettingsPhotoData;
+
+  const result = await apiCall('updateAdminProfile', payload);
+  if (result.success) {
+    alert(result.message);
+    STATE.currentUser.data = Object.assign({}, d, { name: name, title: title, photo: _adminSettingsPhotoData || d.photo });
+    renderSidebar();
+    renderAdminSettingsForm();
+  }
+}
+
+let _teacherSettingsPhotoData = '';
+function previewTeacherSettingsPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    _teacherSettingsPhotoData = reader.result;
+    $('teacherSettingsPhotoPreview').innerHTML = photoTag(_teacherSettingsPhotoData, '');
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderTeacherSettingsForm() {
+  const d = STATE.currentUser.data || {};
+  _teacherSettingsPhotoData = '';
+  $('teacherSettingsId').value = d.id || '';
+  $('teacherSettingsName').value = d.name || '';
+  $('teacherSettingsTitle').value = d.title || '';
+  $('teacherSettingsNewPassword').value = '';
+  $('teacherSettingsConfirmPassword').value = '';
+  $('teacherSettingsPhotoPreview').innerHTML = photoTag(d.photo, '');
+  $('teacherSettingsPhoto').value = '';
+}
+
+async function saveTeacherSettings() {
+  const d = STATE.currentUser.data || {};
+  const newPass = $('teacherSettingsNewPassword').value;
+  const confirmPass = $('teacherSettingsConfirmPassword').value;
+  if (newPass && newPass !== confirmPass) {
+    alert('New password and confirmation do not match.');
+    return;
+  }
+  const name = $('teacherSettingsName').value.trim();
+  const title = $('teacherSettingsTitle').value.trim();
+  const payload = { id: d.id, name: name, title: title };
+  if (newPass) payload.newPassword = newPass;
+  if (_teacherSettingsPhotoData) payload.photo = _teacherSettingsPhotoData;
+
+  const result = await apiCall('updateTeacherProfile', payload);
+  if (result.success) {
+    alert(result.message);
+    STATE.currentUser.data = Object.assign({}, d, { name: name, title: title, photo: _teacherSettingsPhotoData || d.photo });
+    renderSidebar();
+    renderTeacherSettingsForm();
+  }
+}
+
 function isRegistrarUser() {
   return STATE.currentUser && STATE.currentUser.userType === 'admin' &&
     String((STATE.currentUser.data || {}).role || '').trim().toLowerCase() === 'registrar';
@@ -3117,16 +3286,20 @@ const SIDEBAR_CONFIG = {
     { icon:'👨‍🏫', label:'Teachers', action:() => { show('admin'); adminTab('teachers'); } },
     { icon:'🗓️', label:'Grading', action:() => { show('admin'); adminTab('permissions'); } },
     { icon:'📚', label:'Subjects', action:() => { show('admin'); adminTab('subjects'); } },
-    { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }
+    { icon:'🏦', label:'Fees', action:() => { show('admin'); adminTab('fees'); } },
+    { icon:'✉️', label:'Messages', action:() => renderMessagesPage() },
+    { icon:'⚙️', label:'Settings', action:() => { show('admin'); adminTab('settings'); renderAdminSettingsForm(); } }
   ],
   registrar: [
     { icon:'📊', label:'Dashboard', action:() => renderAdminOverview() },
     { icon:'👨‍🎓', label:'Students', action:() => { show('admin'); adminTab('students'); } },
-    { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }
+    { icon:'✉️', label:'Messages', action:() => renderMessagesPage() },
+    { icon:'⚙️', label:'Settings', action:() => { show('admin'); adminTab('settings'); renderAdminSettingsForm(); } }
   ],
   teacher: [
     { icon:'📊', label:'Dashboard', action:() => show('teacher') },
-    { icon:'✉️', label:'Messages', action:() => renderMessagesPage() }
+    { icon:'✉️', label:'Messages', action:() => renderMessagesPage() },
+    { icon:'⚙️', label:'Settings', action:() => { show('teacherSettings'); renderTeacherSettingsForm(); } }
   ],
 student: [
   { icon:'📊', label:'Dashboard', action:() => show('student') },
@@ -3578,10 +3751,44 @@ async function saveFinance() {
    function renderMessagesPage() {
   const canSend = isPrincipalUser() || isRegistrarUser();
   $('composeBox').classList.toggle('hidden', !canSend);
-  loadInbox();
+  $('tabBtnSent').classList.toggle('hidden', !canSend);
+  messagesTab('inbox');
   show('messagesPage');
 }
 
+function messagesTab(tab) {
+  STATE.messagesTab = tab;
+  $('tabBtnInbox').classList.toggle('activeTab', tab === 'inbox');
+  $('tabBtnSent').classList.toggle('activeTab', tab === 'sent');
+  $('inboxTabBox').classList.toggle('hidden', tab !== 'inbox');
+  $('sentTabBox').classList.toggle('hidden', tab !== 'sent');
+  if (tab === 'inbox') loadInbox();
+  else loadSentMessages();
+}
+
+async function loadSentMessages() {
+  const senderData = STATE.currentUser.data || {};
+  const senderId = senderData.id || senderData.username || '';
+  const res = await apiCall('getSentMessages', { senderId: senderId }, { silent: true });
+  const msgs = (res.success && res.messages) || [];
+  STATE.sentMessages = msgs;
+  $('sentList').innerHTML = msgs.map(m => {
+    const recipientLabel = m.recipientType === 'all'
+      ? 'All Users'
+      : `${esc(m.recipientType.charAt(0).toUpperCase() + m.recipientType.slice(1))}${m.recipientId ? ' — ' + esc(m.recipientId) : ' (Broadcast to role)'}`;
+    return `<div class="item" style="align-items:flex-start;">
+      <div>
+        <b>${esc(m.subject)}</b> <span class="muted">to ${recipientLabel}</span><br>
+        <span>${esc(m.body)}</span><br>
+        ${m.attachmentUrl ? `<a href="${esc(m.attachmentUrl)}" target="_blank">📎 ${esc(m.attachmentName)}</a><br>` : ''}
+        <small class="muted">${esc(m.sentAt)} • ${m.read ? '✅ Read' : '📬 Unread'}</small>
+      </div>
+      <div class="studentCardActions">
+        <button class="light" data-action="printMessage" data-id="${esc(m.id)}">🖨️ Print</button>
+      </div>
+    </div>`;
+  }).join('') || '<p class="muted">No sent messages yet.</p>';
+}
 function currentInboxIdentity() {
   const key = currentPortalRoleKey(); // 'principal'|'registrar'|'teacher'|'student'
   const d = STATE.currentUser.data || {};
