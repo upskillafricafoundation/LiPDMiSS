@@ -976,7 +976,7 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
     <div class="sheet">
       <div class="pdfActions">
 <button id="gradePrintBtn" class="light" onclick="printReportCard()">🖨️ Print</button>
-<button id="gradePdfBtn" onclick="downloadSheetPdf('gradeSheetPrintable','Grade-Sheet')">⬇ Download</button>
+<button id="gradePdfBtn" onclick="downloadReportCardPdf()">⬇ Download</button>
 </div>
       <div id="gradeSheetPrintable"></div>
     </div>
@@ -1970,6 +1970,55 @@ function printReportCard() {
   setTimeout(() => { printWin.print(); }, 400);
 }
 
+   // Downloads the grade sheet as a 2-page PDF (Front + Back), even though
+// the on-screen view only shows the Front page. Renders both pages into
+// an off-screen container so html2canvas can capture each one cleanly.
+async function downloadReportCardPdf() {
+  const s = STATE.currentUser && STATE.currentUser.data;
+  if (!s || s.gradeSheetLocked) return;
+
+  showLoading('Generating PDF…');
+  const offscreen = document.createElement('div');
+  offscreen.style.position = 'fixed';
+  offscreen.style.top = '0';
+  offscreen.style.left = '-99999px';
+  offscreen.style.width = '850px';
+  offscreen.innerHTML = buildReportCardFrontHtml(s) + buildReportCardBackHtml(s);
+  document.body.appendChild(offscreen);
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    const pages = offscreen.querySelectorAll('.reportCardPage');
+    for (let i = 0; i < pages.length; i++) {
+      const canvas = await html2canvas(pages[i], { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+
+      if (i > 0) pdf.addPage();
+
+      let heightLeft = imgHeight;
+      let position = 0;
+      pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
+      heightLeft -= pageHeight;
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+    }
+
+    pdf.save(`Grade-Sheet-${s.id}.pdf`);
+  } finally {
+    document.body.removeChild(offscreen);
+    hideLoading();
+  }
+}
+   
 function renderPaymentSheet(s) {
   const f = s.finance || {};
   const installments = f.installments || [0, 0, 0, 0];
