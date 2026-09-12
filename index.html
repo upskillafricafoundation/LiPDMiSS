@@ -633,31 +633,61 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
 .a4SignRow { display:flex; justify-content:space-between; margin-top:40px; font-size:11px; }
 .a4SignRow div { width:45%; border-top:1px solid #111; text-align:center; padding-top:4px; }
 /* ===================== REPORT CARD — EDIT.org style template ===================== */
-.rcTemplate {
-  background:#fdf6d8; max-width:800px; margin:0 auto; padding:36px 40px;
-  border:2px solid #1c1c1c; font-family:Arial, "Segoe UI", sans-serif; color:#1c1c1c;
+/* ===================== REPORT CARD — TWO-PAGE (FRONT & BACK) TEMPLATE ===================== */
+.reportCardPage {
+  background:#fdf6d8; max-width:850px; margin:0 auto 20px; padding:30px 34px;
+  border:2px solid #1c1c1c; font-family:Georgia, 'Times New Roman', serif; color:#1c1c1c;
 }
-.rcTemplate h1 {
-  text-align:center; font-size:34px; font-weight:900; letter-spacing:1px;
-  margin:0 0 4px; text-transform:uppercase; font-family:Georgia, 'Times New Roman', serif;
+.rcPageLabel { text-align:right; font-size:10px; color:#8a7a3a; font-weight:700; margin-bottom:6px; letter-spacing:1px; text-transform:uppercase; }
+
+/* FRONT PAGE — two semester tables side by side */
+.rcSemesterGrid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:20px; }
+.rcSemTableWrap { border:2px solid #1c1c1c; border-radius:4px; overflow:hidden; }
+.rcSemTitle { text-align:center; font-style:italic; font-weight:700; font-size:15px; padding:8px; border-bottom:2px solid #1c1c1c; background:#fdf6d8; }
+.rcSemTable { width:100%; border-collapse:collapse; font-size:11.5px; }
+.rcSemTable th, .rcSemTable td { border:1px solid #1c1c1c; padding:5px 4px; text-align:center; }
+.rcSemTable td.rcSubjectCell { text-align:left; padding-left:8px; font-weight:600; }
+.rcSemTable tr.rcSummaryRow td { font-weight:800; background:rgba(0,0,0,0.05); }
+
+.rcGradeKey { text-align:center; margin-top:6px; }
+.rcGradeKey b { display:block; font-style:italic; margin-bottom:6px; }
+.rcGradeKeyGrid { display:flex; justify-content:center; gap:50px; flex-wrap:wrap; font-size:12.5px; }
+
+.gradeRed   { color:#c0392b; font-weight:800; }
+.gradeBlue  { color:#1d4ed8; font-weight:800; }
+.gradeGreen { color:#065f46; font-weight:800; }
+
+/* BACK PAGE — promotion statement + school header/signature table */
+.rcBackGrid { display:grid; grid-template-columns:1fr 1fr; gap:0; border:2px solid #1c1c1c; }
+.rcPromoBox { padding:20px 22px; border-right:2px solid #1c1c1c; }
+.rcPromoBox h3 { text-decoration:underline; margin:0 0 14px; font-size:17px; }
+.rcPromoLine { margin:10px 0; font-size:13px; }
+.rcPromoLine .fillIn { display:inline-block; min-width:180px; border-bottom:1px solid #1c1c1c; font-weight:700; padding:0 4px; }
+.rcPromoOption { margin:8px 0; font-size:12.5px; }
+.rcSignBlock { margin-top:26px; }
+.rcSignLine { display:block; border-bottom:1px solid #1c1c1c; min-height:26px; margin-bottom:2px; }
+.rcSignLabel { font-size:11px; text-transform:uppercase; letter-spacing:0.5px; }
+
+.rcHeaderBox { padding:20px 22px; }
+.rcSchoolHead { display:flex; align-items:center; gap:14px; margin-bottom:10px; }
+.rcSchoolHead img { width:56px; height:56px; object-fit:contain; }
+.rcSchoolHead .rcSchoolName { font-weight:900; font-size:15px; line-height:1.25; text-transform:uppercase; }
+.rcSchoolHead .rcSchoolSub { font-size:10.5px; color:#333; }
+.rcCardTitleBar { text-align:center; background:#1c1c1c; color:#fff; font-weight:800; padding:6px; margin:10px 0 14px; letter-spacing:1px; font-size:13px; text-transform:uppercase; }
+.rcStudentMetaLine { font-size:13.5px; margin:6px 0; }
+.rcStudentMetaLine b { border-bottom:1px solid #1c1c1c; padding:0 6px; }
+.rcSignoffNote { text-align:center; font-weight:700; font-size:12px; margin:14px 0 8px; }
+.rcSignoffTable { width:100%; border-collapse:collapse; font-size:12px; }
+.rcSignoffTable th, .rcSignoffTable td { border:1px solid #1c1c1c; padding:8px; text-align:center; }
+.rcSignoffTable th { background:#1c1c1c; color:#fff; font-style:italic; }
+.rcFootnote { font-size:10.5px; color:#333; margin-top:14px; line-height:1.5; }
+
+/* Print window: one page per sheet of paper */
+@media print {
+  .rcPageLabel { display:none; }
+  .reportCardPage { break-after: page; box-shadow:none; margin:0; border:none; }
+  .reportCardPage:last-child { break-after: auto; }
 }
-.rcTemplate .rcSubtitle { text-align:center; font-size:11px; color:#333; margin:0 0 22px; }
-
-.rcMetaTable { width:100%; border-collapse:collapse; border:2px solid #1c1c1c; margin-bottom:22px; }
-.rcMetaTable td { border:1px solid #1c1c1c; padding:10px 14px; font-size:12.5px; font-weight:700; width:50%; }
-
-.rcGradeTable { width:100%; border-collapse:collapse; margin-bottom:22px; font-size:12px; }
-.rcGradeTable th { background:#1c1c1c; color:#fff; font-weight:800; padding:10px 6px; text-transform:uppercase; font-size:10.5px; letter-spacing:0.4px; }
-.rcGradeTable td { border:1px solid #1c1c1c; padding:9px 6px; text-align:center; font-weight:700; }
-.rcGradeTable td.rcSubjectCell { text-align:left; font-weight:800; }
-.rcGradeTable tr:nth-child(even) td { background:rgba(0,0,0,0.03); }
-
-.rcBottomBoxes { width:100%; border-collapse:collapse; border:2px solid #1c1c1c; margin-bottom:26px; }
-.rcBottomBoxes td { border:1px solid #1c1c1c; padding:12px 14px; font-size:12.5px; font-weight:700; width:50%; }
-
-.rcFooter { display:flex; justify-content:space-between; align-items:flex-end; font-size:11px; }
-.rcFooter .rcFooterLines div { margin-bottom:2px; }
-.rcLogoBox { border:1px dashed #1c1c1c; padding:14px 20px; text-align:center; font-size:11px; font-weight:800; letter-spacing:0.5px; }
 
    .msgBadge {
   background: #dc2626; color: #fff; font-size: 10px; font-weight: 800;
@@ -945,8 +975,8 @@ footer { text-align: center; padding: 30px 15px; color: #64748b; font-size: 13px
     </div>
     <div class="sheet">
       <div class="pdfActions">
-  <button id="gradePrintBtn" class="light" onclick="printSheet('gradeSheetPrintable')">🖨️ Print</button>
-  <button id="gradePdfBtn" onclick="downloadSheetPdf('gradeSheetPrintable','Grade-Sheet')">⬇ Download</button>
+<button id="gradePrintBtn" class="light" onclick="printReportCard()">🖨️ Print</button>
+<button id="gradePdfBtn" onclick="downloadSheetPdf('gradeSheetPrintable','Grade-Sheet')">⬇ Download</button>
 </div>
       <div id="gradeSheetPrintable"></div>
     </div>
@@ -1421,6 +1451,21 @@ function gradeFor(avg) {
   return { grade: 'A+', remark: 'HONORED' };
 }
 
+   // Colors an individual score cell: <70 red, 70-89 blue, >=90 deep green.
+function scoreColorClass(val) {
+  if (val === '' || val === null || val === undefined) return '';
+  const n = Number(val);
+  if (isNaN(n)) return '';
+  if (n < 70) return 'gradeRed';
+  if (n >= 90) return 'gradeGreen';
+  return 'gradeBlue';
+}
+function scoreCell(val) {
+  const cls = scoreColorClass(val);
+  const display = (val === '' || val === null || val === undefined) ? '-' : val;
+  return `<td class="${cls}">${display}</td>`;
+}
+   
 function studentSubjectsForYear(student, year) {
   return (student.years && student.years[year]) ? student.years[year] : [];
 }
@@ -1790,67 +1835,139 @@ function jumpToTeachersList() {
       .map(t => t.name).join(', ') || 'None assigned yet.'));
 }
 
+function buildReportCardFrontHtml(s) {
+  const year = s.academicYear;
+  const subs = studentSubjectsForYear(s, year);
+  const pos = studentClassPosition(s, year);
+  const overallAvg = studentYearlyAverage(s, year);
+
+  const subjectRows1 = subs.map(sub => {
+    const sem1 = avgOf([sub.p1, sub.p2, sub.p3, sub.exam1]);
+    return `<tr>
+      <td class="rcSubjectCell">${esc(sub.subject)}</td>
+      ${scoreCell(sub.p1)}${scoreCell(sub.p2)}${scoreCell(sub.p3)}${scoreCell(sub.exam1)}
+      ${scoreCell(sem1 ? Number(sem1.toFixed(1)) : '')}
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="muted">No subjects recorded yet.</td></tr>`;
+
+  const subjectRows2 = subs.map(sub => {
+    const sem1 = avgOf([sub.p1, sub.p2, sub.p3, sub.exam1]);
+    const sem2 = avgOf([sub.p4, sub.p5, sub.p6, sub.exam2]);
+    const yr = (sem1 + sem2) / 2;
+    return `<tr>
+      ${scoreCell(sub.p4)}${scoreCell(sub.p5)}${scoreCell(sub.p6)}${scoreCell(sub.exam2)}
+      ${scoreCell(sem2 ? Number(sem2.toFixed(1)) : '')}
+      ${scoreCell(yr ? Number(yr.toFixed(1)) : '')}
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="muted">—</td></tr>`;
+
+  return `
+    <div class="reportCardPage rcFrontPage">
+      <div class="rcPageLabel">Front — Academic Record</div>
+      <div class="rcSemesterGrid">
+        <div class="rcSemTableWrap">
+          <div class="rcSemTitle">FIRST SEMESTER</div>
+          <table class="rcSemTable">
+            <thead><tr><th>SUBJECTS</th><th>1st</th><th>2nd</th><th>3rd</th><th>Exam</th><th>S.Ave</th></tr></thead>
+            <tbody>
+              ${subjectRows1}
+              <tr class="rcSummaryRow"><td class="rcSubjectCell">Conduct</td><td colspan="4"></td><td>${esc(s.behaviour) || '-'}</td></tr>
+              <tr class="rcSummaryRow"><td class="rcSubjectCell">Rank</td><td colspan="4"></td><td>${pos.position} of ${pos.of}</td></tr>
+              <tr class="rcSummaryRow"><td class="rcSubjectCell">Average</td><td colspan="4"></td><td>${overallAvg ? overallAvg.toFixed(1) : '-'}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="rcSemTableWrap">
+          <div class="rcSemTitle">SECOND SEMESTER</div>
+          <table class="rcSemTable">
+            <thead><tr><th>4th</th><th>5th</th><th>6th</th><th>Exam</th><th>S.Ave</th><th>Yr.</th></tr></thead>
+            <tbody>${subjectRows2}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="rcGradeKey">
+        <b>Method of Grading</b>
+        <div class="rcGradeKeyGrid">
+          <span class="gradeGreen">90 &amp; above — Excellent</span>
+          <span class="gradeBlue">70 – 89 — Passing</span>
+          <span class="gradeRed">Below 70 — Failing</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildReportCardBackHtml(s) {
+  const year = s.academicYear;
+  return `
+    <div class="reportCardPage rcBackPage">
+      <div class="rcPageLabel">Back — Promotion &amp; Sign-Off</div>
+      <div class="rcBackGrid">
+        <div class="rcPromoBox">
+          <h3>Promotion Statement</h3>
+          <p class="rcPromoLine">This certifies that <span class="fillIn">${esc(s.name)}</span></p>
+          <p class="rcPromoLine">Has satisfactorily completed the work of Grade <span class="fillIn">${esc(s.className)}</span> and is:</p>
+          <div class="rcPromoOption">A. Promoted to Grade _____________________</div>
+          <div class="rcPromoOption">B. Condition in _____________________</div>
+          <div class="rcPromoOption">C. Required to repeat the grade</div>
+          <div class="rcPromoOption">D. Asked not to return (NTR)</div>
+          <div class="rcSignBlock"><span class="rcSignLine"></span><div class="rcSignLabel">Class Sponsor</div></div>
+          <div class="rcSignBlock"><span class="rcSignLine"></span><div class="rcSignLabel">Principal</div></div>
+          <div class="rcSignBlock"><span class="rcSignLine">Date: ______________________</span></div>
+        </div>
+        <div class="rcHeaderBox">
+          <div class="rcSchoolHead">
+            <img src="assets/lipdmiss-logo.png" alt="Logo" onerror="this.style.display='none'">
+            <div>
+              <div class="rcSchoolName">${esc(APP_CONFIG.SCHOOL_NAME)}</div>
+              <div class="rcSchoolSub">${esc(APP_CONFIG.MOTTO)}</div>
+            </div>
+          </div>
+          <div class="rcCardTitleBar">Student Report Card</div>
+          <p class="rcStudentMetaLine">Student's Name: <b>${esc(s.name)}</b></p>
+          <p class="rcStudentMetaLine">Grade: <b>${esc(s.className)}</b> &nbsp; School Year: <b>${esc(year)}</b></p>
+          <p class="rcStudentMetaLine">Student ID: <b>${esc(s.id)}</b></p>
+          <p class="rcSignoffNote">Parents or Guardian must sign each period as evidence they have seen the periodic report.</p>
+          <table class="rcSignoffTable">
+            <thead><tr><th>Period</th><th>Class Teacher</th><th>Parent/Guardian</th></tr></thead>
+            <tbody>${['I','II','III','IV','V','VI'].map(p => `<tr><td>${p}</td><td>&nbsp;</td><td>&nbsp;</td></tr>`).join('')}</tbody>
+          </table>
+          <p class="rcFootnote">Note: When a student's mark is below 70 in any subject, the Parent or Guardian should give special attention to see that the student does well in all required work; otherwise the student will probably fail.</p>
+        </div>
+      </div>
+    </div>`;
+}
+
 function renderGradeSheet(s) {
   const wrap = $('gradeSheetPrintable');
   const pdfBtn = $('gradePdfBtn');
+  const printBtn = $('gradePrintBtn');
 
-    if (s.gradeSheetLocked) {
-    wrap.innerHTML = `...`;
+  if (s.gradeSheetLocked) {
+    wrap.innerHTML = `<div class="lockedNotice">🔒 This grade sheet is currently locked by the school administration.</div>`;
     if (pdfBtn) pdfBtn.disabled = true;
-    if ($('gradePrintBtn')) $('gradePrintBtn').disabled = true;
+    if (printBtn) printBtn.disabled = true;
     return;
   }
   if (pdfBtn) pdfBtn.disabled = false;
-  if ($('gradePrintBtn')) $('gradePrintBtn').disabled = false;
+  if (printBtn) printBtn.disabled = false;
 
-  const year = s.academicYear;
-  const subs = studentSubjectsForYear(s, year);
+  // On-screen view shows the FRONT page only.
+  wrap.innerHTML = buildReportCardFrontHtml(s);
+}
 
-  const classTeacher = (STATE.teachers || []).find(t =>
-    (t.assignments || []).some(a => String(a.class).toLowerCase() === String(s.className).toLowerCase())
-  );
-
-  const rows = subs.map(sub => `
-    <tr>
-      <td class="rcSubjectCell">${esc(sub.subject)}</td>
-      <td>${sub.p1 ?? '-'}</td><td>${sub.p2 ?? '-'}</td><td>${sub.p3 ?? '-'}</td><td>${sub.exam1 ?? '-'}</td>
-      <td>${sub.p4 ?? '-'}</td><td>${sub.p5 ?? '-'}</td><td>${sub.p6 ?? '-'}</td><td>${sub.exam2 ?? '-'}</td>
-    </tr>`).join('') || `<tr><td colspan="9" class="muted">No subject scores recorded yet for ${esc(year)}.</td></tr>`;
-
-  wrap.innerHTML = `
-    <div class="rcTemplate">
-      <h1>Student Report Card</h1>
-      <p class="rcSubtitle">Official grade sheet from ${esc(APP_CONFIG.SCHOOL_NAME)}</p>
-
-      <table class="rcMetaTable">
-        <tr><td>NAME: ${esc(s.name)}</td><td>SCHOOL YEAR: ${esc(s.academicYear)}</td></tr>
-        <tr><td>GRADE: ${esc(s.className)}</td><td>TERM: Full Academic Year</td></tr>
-        <tr><td>TEACHER: ${classTeacher ? esc(classTeacher.name) : '—'}</td><td>DATE: ${new Date().toLocaleDateString()}</td></tr>
-      </table>
-
-      <div class="tableWrap">
-        <table class="rcGradeTable">
-          <thead><tr>
-            <th>Subject</th><th>1st PD</th><th>2nd PD</th><th>3rd PD</th><th>1st Exam</th>
-            <th>4th PD</th><th>5th PD</th><th>6th PD</th><th>2nd Exam</th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-
-      <table class="rcBottomBoxes">
-        <tr><td>CLASS TEACHER'S REMARK:</td><td>PRINCIPAL'S REMARK:</td></tr>
-        <tr><td>TEACHER'S SIGNATURE:</td><td>PRINCIPAL'S SIGNATURE:</td></tr>
-      </table>
-
-      <div class="rcFooter">
-        <div class="rcFooterLines">
-          <div>${esc(APP_CONFIG.SCHOOL_NAME)}</div>
-          <div>Student ID: ${esc(s.id)}</div>
-        </div>
-        <div class="rcLogoBox">LiPDMiSS</div>
-      </div>
-    </div>`;
+// Print view: builds both Front and Back pages into a separate print window.
+function printReportCard() {
+  const s = STATE.currentUser && STATE.currentUser.data;
+  if (!s || s.gradeSheetLocked) return;
+  const html = buildReportCardFrontHtml(s) + buildReportCardBackHtml(s);
+  const styles = Array.from(document.querySelectorAll('style')).map(el => el.outerHTML).join('');
+  const printWin = window.open('', '_blank');
+  printWin.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Report Card — ${esc(s.name)}</title>${styles}
+    <style>body{background:#fff;margin:0;padding:20px;}</style>
+  </head><body>${html}</body></html>`);
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => { printWin.print(); }, 400);
 }
 
 function renderPaymentSheet(s) {
